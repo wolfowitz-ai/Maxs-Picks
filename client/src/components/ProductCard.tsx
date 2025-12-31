@@ -26,9 +26,9 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
         {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-gray-50">
           {featured && (
-            <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm">
-              <Star className="w-3 h-3 fill-white" />
-              Featured
+            <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium shadow-sm">
+              <Star className="w-2.5 h-2.5 md:w-3 md:h-3 fill-white" />
+              <span className="hidden sm:inline">Featured</span>
             </div>
           )}
           <img
@@ -37,30 +37,29 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
             className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
           />
           {hasPrice && (
-            <Badge className="absolute top-3 right-3 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-sm font-bold px-3 py-1">
+            <Badge className="absolute top-2 right-2 md:top-3 md:right-3 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-xs md:text-sm font-bold px-2 py-0.5 md:px-3 md:py-1">
               ${parseFloat(product.price!).toFixed(2)}
             </Badge>
           )}
         </div>
 
-        <CardHeader className="p-5 pb-2">
-          <div className="flex justify-between items-start mb-2">
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200">
+        <CardHeader className="p-3 md:p-5 pb-1 md:pb-2">
+          <div className="flex justify-between items-center mb-1 md:mb-2">
+            <span className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wide">
               {product.category}
-            </Badge>
-            <div className="flex items-center gap-1 text-amber-400">
-              <PawPrint className="w-4 h-4 fill-current" />
-              <span className="text-sm font-semibold text-gray-700">{parseFloat(product.rating).toFixed(1)}</span>
-              <span className="text-xs text-gray-400">({product.reviews})</span>
+            </span>
+            <div className="flex items-center gap-0.5 md:gap-1 text-amber-400">
+              <Star className="w-3 h-3 md:w-4 md:h-4 fill-current" />
+              <span className="text-xs md:text-sm font-semibold text-gray-700">{parseFloat(product.rating).toFixed(1)}</span>
             </div>
           </div>
-          <h3 className="font-heading text-xl font-bold text-gray-800 leading-tight group-hover:text-primary transition-colors">
+          <h3 className="font-heading text-sm md:text-xl font-bold text-gray-800 leading-tight group-hover:text-primary transition-colors line-clamp-2">
             {product.title}
           </h3>
         </CardHeader>
 
-        <CardContent className="p-5 pt-2 flex-grow relative">
-          <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.description}</p>
+        <CardContent className="p-3 md:p-5 pt-1 md:pt-2 flex-grow relative">
+          <p className="text-gray-500 text-[11px] md:text-sm mb-2 md:mb-4 line-clamp-1 sm:line-clamp-2">{product.description}</p>
           
           {/* Max's Take - Interactive Paw */}
           <div className="relative">
@@ -68,7 +67,7 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
               onClick={() => setShowMaxsTake(!showMaxsTake)}
               onMouseEnter={() => setShowMaxsTake(true)}
               onMouseLeave={() => setShowMaxsTake(false)}
-              className="relative bg-primary text-white p-2.5 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-110 cursor-pointer"
+              className="relative bg-primary text-white p-1.5 md:p-2.5 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-110 cursor-pointer"
               aria-label="See what Max says"
               data-testid={`paw-button-${product.id}`}
             >
@@ -81,7 +80,7 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
                   ease: "easeInOut"
                 }}
               >
-                <PawPrint className="w-4 h-4" />
+                <PawPrint className="w-3 h-3 md:w-4 md:h-4" />
               </motion.div>
             </button>
 
@@ -94,27 +93,27 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
                   transition={{ duration: 0.2 }}
                   className="absolute bottom-full left-0 right-0 mb-2 z-20"
                 >
-                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 shadow-lg">
-                    <p className="text-sm text-blue-900 italic leading-relaxed">
-                      "<span className="font-semibold not-italic">Max says:</span> {product.maxsTake}"
+                  <div className="bg-blue-50 rounded-lg md:rounded-xl p-2 md:p-4 border border-blue-200 shadow-lg">
+                    <p className="text-[10px] md:text-sm text-blue-900 italic leading-relaxed line-clamp-3 md:line-clamp-none">
+                      "<span className="font-semibold not-italic">Max:</span> {product.maxsTake}"
                     </p>
                   </div>
-                  <div className="absolute left-4 bottom-0 transform translate-y-1/2 rotate-45 w-3 h-3 bg-blue-50 border-r border-b border-blue-200"></div>
+                  <div className="absolute left-3 md:left-4 bottom-0 transform translate-y-1/2 rotate-45 w-2 h-2 md:w-3 md:h-3 bg-blue-50 border-r border-b border-blue-200"></div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </CardContent>
 
-        <CardFooter className="p-5 pt-0">
+        <CardFooter className="p-3 md:p-5 pt-0">
           <Button 
-            className="w-full bg-gradient-to-r from-primary to-blue-400 hover:to-blue-500 text-white font-bold shadow-lg hover:shadow-blue-200 transition-all h-12 rounded-xl group/btn"
+            className="w-full bg-gradient-to-r from-primary to-blue-400 hover:to-blue-500 text-white font-semibold md:font-bold shadow-lg hover:shadow-blue-200 transition-all h-9 md:h-12 rounded-lg md:rounded-xl group/btn text-xs md:text-base"
             size="lg"
             onClick={() => window.open(product.amazonUrl, '_blank')}
             data-testid={`buy-button-${product.id}`}
           >
             Buy on Amazon
-            <ExternalLink className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+            <ExternalLink className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2 group-hover/btn:translate-x-1 transition-transform" />
           </Button>
         </CardFooter>
       </Card>
