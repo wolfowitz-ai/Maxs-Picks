@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductFilter } from "@/components/ProductFilter";
 import { useProducts, useFeaturedProducts } from "@/lib/api";
-import { PawPrint, Menu, Lock, Loader2, Star } from "lucide-react";
+import { PawPrint, Menu, Lock, Loader2, Star, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface LayoutSettings {
@@ -33,6 +34,8 @@ function getLayoutSettings(): LayoutSettings {
 
 export default function Home() {
   const [category, setCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
   const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>(DEFAULT_LAYOUT);
   const { data: products, isLoading, error } = useProducts(category);
   const { data: allFeaturedProducts } = useFeaturedProducts();
@@ -52,8 +55,32 @@ export default function Home() {
     };
   }, []);
 
-  const featuredProducts = allFeaturedProducts?.slice(0, layoutSettings.featuredTotal) || [];
-  const curatedProducts = products?.slice(0, layoutSettings.curatedTotal) || [];
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    if (!searchQuery.trim()) return products;
+    
+    const query = searchQuery.toLowerCase();
+    return products.filter(p => 
+      p.title.toLowerCase().includes(query) || 
+      p.description.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query)
+    );
+  }, [products, searchQuery]);
+
+  const filteredFeatured = useMemo(() => {
+    if (!allFeaturedProducts) return [];
+    if (!searchQuery.trim()) return allFeaturedProducts;
+    
+    const query = searchQuery.toLowerCase();
+    return allFeaturedProducts.filter(p => 
+      p.title.toLowerCase().includes(query) || 
+      p.description.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query)
+    );
+  }, [allFeaturedProducts, searchQuery]);
+
+  const featuredProducts = filteredFeatured.slice(0, layoutSettings.featuredTotal);
+  const curatedProducts = filteredProducts.slice(0, layoutSettings.curatedTotal);
 
   const getGridClass = (columns: number) => {
     switch (columns) {
@@ -80,18 +107,56 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-6">
-            <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Home</a>
-            <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Categories</a>
-            <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">About Max</a>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
+            {showSearch ? (
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-8 w-64"
+                    autoFocus
+                    data-testid="input-search"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => { setShowSearch(false); setSearchQuery(""); }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Home</a>
+                <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Categories</a>
+                <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">About Max</a>
+                <Button variant="ghost" size="icon" onClick={() => setShowSearch(true)} data-testid="button-search">
+                  <Search className="w-4 h-4" />
+                </Button>
+              </>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 md:hidden">
+            {/* Mobile Search */}
+            <Button variant="ghost" size="icon" onClick={() => setShowSearch(!showSearch)}>
+              <Search className="w-5 h-5" />
+            </Button>
             
             {/* Mobile Menu */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button variant="ghost" size="icon">
                   <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
@@ -105,10 +170,51 @@ export default function Home() {
             </Sheet>
           </div>
         </div>
+
+        {/* Mobile Search Bar */}
+        {showSearch && (
+          <div className="md:hidden px-4 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8 w-full"
+                autoFocus
+                data-testid="input-search-mobile"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </nav>
 
       <main className="pb-20">
         <Hero />
+
+        {/* Search Results Indicator */}
+        {searchQuery && (
+          <div className="container mx-auto px-4 mt-8">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center justify-between">
+              <p className="text-blue-800">
+                Showing results for "<span className="font-medium">{searchQuery}</span>"
+                {" "}({filteredProducts.length + filteredFeatured.length} products found)
+              </p>
+              <Button variant="ghost" size="sm" onClick={() => setSearchQuery("")} className="text-blue-600 hover:text-blue-800">
+                Clear search
+              </Button>
+            </div>
+          </div>
+        )}
         
         {/* Featured Products Section */}
         {featuredProducts.length > 0 && (
@@ -161,10 +267,18 @@ export default function Home() {
               
               {curatedProducts.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-                  <p className="text-gray-400 text-lg">No products found in this category yet!</p>
-                  <Button variant="link" onClick={() => setCategory("All")} className="mt-2 text-primary">
-                    View all products
-                  </Button>
+                  <p className="text-gray-400 text-lg">
+                    {searchQuery ? "No products match your search." : "No products found in this category yet!"}
+                  </p>
+                  {searchQuery ? (
+                    <Button variant="link" onClick={() => setSearchQuery("")} className="mt-2 text-primary">
+                      Clear search
+                    </Button>
+                  ) : (
+                    <Button variant="link" onClick={() => setCategory("All")} className="mt-2 text-primary">
+                      View all products
+                    </Button>
+                  )}
                 </div>
               )}
             </>

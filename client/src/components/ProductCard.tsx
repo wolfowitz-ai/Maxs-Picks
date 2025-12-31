@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PawPrint, ExternalLink, Star } from "lucide-react";
 import type { Product } from "@shared/schema";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, index, featured = false }: ProductCardProps) {
+  const [showMaxsTake, setShowMaxsTake] = useState(false);
+  const hasPrice = product.price && parseFloat(product.price) > 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -32,9 +36,11 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
             alt={product.title}
             className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
           />
-          <Badge className="absolute top-3 right-3 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-sm font-bold px-3 py-1">
-            ${parseFloat(product.price).toFixed(2)}
-          </Badge>
+          {hasPrice && (
+            <Badge className="absolute top-3 right-3 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-sm font-bold px-3 py-1">
+              ${parseFloat(product.price!).toFixed(2)}
+            </Badge>
+          )}
         </div>
 
         <CardHeader className="p-5 pb-2">
@@ -53,17 +59,50 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
           </h3>
         </CardHeader>
 
-        <CardContent className="p-5 pt-2 flex-grow">
+        <CardContent className="p-5 pt-2 flex-grow relative">
           <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.description}</p>
           
-          {/* Max's Take Section */}
-          <div className="bg-blue-50/80 rounded-xl p-4 relative border border-blue-100 mt-auto">
-            <div className="absolute -top-3 left-4 bg-primary text-white p-1.5 rounded-full shadow-sm">
-              <PawPrint className="w-3 h-3" />
-            </div>
-            <p className="text-sm text-blue-900 italic leading-relaxed">
-              "<span className="font-semibold not-italic">Max says:</span> {product.maxsTake}"
-            </p>
+          {/* Max's Take - Interactive Paw */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMaxsTake(!showMaxsTake)}
+              onMouseEnter={() => setShowMaxsTake(true)}
+              onMouseLeave={() => setShowMaxsTake(false)}
+              className="relative bg-primary text-white p-2.5 rounded-full shadow-md hover:shadow-lg transition-all hover:scale-110 cursor-pointer"
+              aria-label="See what Max says"
+              data-testid={`paw-button-${product.id}`}
+            >
+              <motion.div
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity, 
+                  repeatDelay: 3,
+                  ease: "easeInOut"
+                }}
+              >
+                <PawPrint className="w-4 h-4" />
+              </motion.div>
+            </button>
+
+            <AnimatePresence>
+              {showMaxsTake && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 5, scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute bottom-full left-0 right-0 mb-2 z-20"
+                >
+                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 shadow-lg">
+                    <p className="text-sm text-blue-900 italic leading-relaxed">
+                      "<span className="font-semibold not-italic">Max says:</span> {product.maxsTake}"
+                    </p>
+                  </div>
+                  <div className="absolute left-4 bottom-0 transform translate-y-1/2 rotate-45 w-3 h-3 bg-blue-50 border-r border-b border-blue-200"></div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </CardContent>
 
@@ -72,6 +111,7 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
             className="w-full bg-gradient-to-r from-primary to-blue-400 hover:to-blue-500 text-white font-bold shadow-lg hover:shadow-blue-200 transition-all h-12 rounded-xl group/btn"
             size="lg"
             onClick={() => window.open(product.amazonUrl, '_blank')}
+            data-testid={`buy-button-${product.id}`}
           >
             Buy on Amazon
             <ExternalLink className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />

@@ -317,7 +317,7 @@ export default function Admin() {
                                 <div>
                                   <span className="font-medium text-sm md:text-base">{product.title}</span>
                                   <div className="md:hidden text-xs text-gray-500 mt-0.5">
-                                    {product.category} • ${parseFloat(product.price).toFixed(2)}
+                                    {product.category}{product.price ? ` • $${parseFloat(product.price).toFixed(2)}` : ""}
                                   </div>
                                 </div>
                               </TableCell>
@@ -326,7 +326,9 @@ export default function Admin() {
                                   {product.category}
                                 </span>
                               </TableCell>
-                              <TableCell className="hidden sm:table-cell">${parseFloat(product.price).toFixed(2)}</TableCell>
+                              <TableCell className="hidden sm:table-cell">
+                                {product.price ? `$${parseFloat(product.price).toFixed(2)}` : <span className="text-gray-400">—</span>}
+                              </TableCell>
                               <TableCell className="hidden lg:table-cell">
                                 <div className="flex items-center gap-1">
                                   <PawPrint className="w-3 h-3 fill-amber-400 text-amber-400" />

@@ -35,7 +35,7 @@ export const products = pgTable("products", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   maxsTake: text("maxs_take").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }),
   rating: decimal("rating", { precision: 3, scale: 2 }).notNull(),
   reviews: integer("reviews").notNull().default(0),
   image: text("image").notNull(),

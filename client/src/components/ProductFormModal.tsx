@@ -44,7 +44,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         title: product.title,
         description: product.description,
         maxsTake: product.maxsTake,
-        price: product.price,
+        price: product.price || "",
         rating: product.rating,
         reviews: product.reviews,
         image: product.image,
@@ -75,6 +75,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
     
     const productData = {
       ...formData,
+      price: formData.price || null,
       reviews: Number(formData.reviews),
     };
 
@@ -167,7 +168,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price ($) *</Label>
+              <Label htmlFor="price">Price ($)</Label>
               <Input
                 id="price"
                 type="number"
@@ -175,8 +176,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
                 min="0"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="12.99"
-                required
+                placeholder="Leave blank if unknown"
               />
             </div>
 

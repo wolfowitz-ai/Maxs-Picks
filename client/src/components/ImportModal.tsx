@@ -148,7 +148,7 @@ export function ImportModal() {
         title: stagedProduct.title,
         description: stagedProduct.description,
         maxsTake: stagedProduct.maxsTake,
-        price: stagedProduct.price,
+        price: stagedProduct.price || null,
         rating: stagedProduct.rating,
         reviews: stagedProduct.reviews,
         image: finalImageUrl,
