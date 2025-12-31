@@ -1,11 +1,35 @@
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { PawPrint, Heart, Bone, ArrowLeft, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
 import { maxPortrait } from "@/lib/data";
+import { getSiteSettings, type SiteSettings } from "@/lib/siteSettings";
 
 export default function About() {
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(getSiteSettings);
+
+  useEffect(() => {
+    const handleStorage = () => setSiteSettings(getSiteSettings());
+    if (typeof window !== 'undefined') {
+      window.addEventListener("storage", handleStorage);
+    }
+    const interval = setInterval(() => {
+      setSiteSettings(getSiteSettings());
+    }, 1000);
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener("storage", handleStorage);
+      }
+      clearInterval(interval);
+    };
+  }, []);
+
+  const instagramUrl = siteSettings.instagramHandle
+    ? `https://instagram.com/${siteSettings.instagramHandle.replace('@', '')}`
+    : "https://instagram.com";
+
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans">
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
@@ -112,7 +136,7 @@ export default function About() {
                   <li>Taking strategic naps in sunny spots</li>
                 </ul>
                 <p>
-                  I started this website because my friends' dogs kept asking what products I recommend. 
+                  I started this website because my doggy friends kept asking what products I recommend. 
                   Rather than bark the same answers over and over, I decided to put together this 
                   curated collection of my absolute favorites. Every single product here has been 
                   personally tested and approved by yours truly!
@@ -128,10 +152,12 @@ export default function About() {
                   Want to see more of my daily life? Follow me on Instagram where I share my 
                   product testing sessions, nap updates, and important squirrel sightings!
                 </p>
-                <Button className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600">
-                  <Instagram className="w-4 h-4 mr-2" />
-                  Follow @MaxTheMaltipoo
-                </Button>
+                <a href={instagramUrl} target="_blank" rel="noopener noreferrer" data-testid="link-instagram-about">
+                  <Button data-testid="button-follow-instagram" className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600">
+                    <Instagram className="w-4 h-4 mr-2" />
+                    Follow {siteSettings.instagramHandle || "@MaxTheMaltipoo"}
+                  </Button>
+                </a>
               </div>
 
               <div className="text-center pt-6">
