@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductFilter } from "@/components/ProductFilter";
-import { ScraperModal } from "@/components/ScraperModal";
 import { products } from "@/lib/data";
-import { PawPrint, ShoppingBag, Menu } from "lucide-react";
+import { PawPrint, Menu, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -36,11 +36,6 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <ScraperModal />
-            <Button size="icon" variant="ghost" className="relative text-gray-600 hover:text-primary hidden md:flex">
-              <ShoppingBag className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
             
             {/* Mobile Menu */}
             <Sheet>
@@ -54,8 +49,6 @@ export default function Home() {
                   <a href="#" className="text-lg font-medium">Home</a>
                   <a href="#" className="text-lg font-medium">Categories</a>
                   <a href="#" className="text-lg font-medium">About Max</a>
-                  <hr className="my-2"/>
-                  <ScraperModal />
                 </div>
               </SheetContent>
             </Sheet>
@@ -96,10 +89,16 @@ export default function Home() {
           <div className="flex justify-center items-center gap-2 mb-6 opacity-50">
             <PawPrint className="w-6 h-6" />
           </div>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-sm mb-4">
             © 2024 Max's Top Picks. All rights reserved.<br/>
             Prices and availability subject to change. As an Amazon Associate I earn from qualifying purchases.
           </p>
+          <Link href="/admin">
+            <Button variant="link" size="sm" className="text-xs text-gray-300 hover:text-gray-500 gap-1">
+              <Lock className="w-3 h-3" />
+              Admin Access
+            </Button>
+          </Link>
         </div>
       </footer>
     </div>
