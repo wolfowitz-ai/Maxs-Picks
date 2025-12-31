@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories, useCreateProduct, useUpdateProduct } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { Product } from "@shared/schema";
 
 interface ProductFormModalProps {
@@ -34,6 +35,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
     category: "",
     amazonUrl: "",
     asin: "",
+    featured: false,
   });
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         category: product.category,
         amazonUrl: product.amazonUrl,
         asin: product.asin || "",
+        featured: product.featured || false,
       });
     } else {
       setFormData({
@@ -62,6 +65,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         category: categories?.[0]?.name || "Toys",
         amazonUrl: "",
         asin: "",
+        featured: false,
       });
     }
   }, [product, categories]);
@@ -259,6 +263,21 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
                 value={formData.asin}
                 onChange={(e) => setFormData({ ...formData, asin: e.target.value })}
                 placeholder="B08EXAMPLE1"
+              />
+            </div>
+
+            <div className="col-span-2 flex items-center justify-between p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-amber-500" />
+                <div>
+                  <Label htmlFor="featured" className="text-base font-medium cursor-pointer">Featured Product</Label>
+                  <p className="text-sm text-muted-foreground">Show in the Featured section on homepage</p>
+                </div>
+              </div>
+              <Switch
+                id="featured"
+                checked={formData.featured}
+                onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
               />
             </div>
           </div>

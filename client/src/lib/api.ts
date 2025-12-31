@@ -25,6 +25,22 @@ export function useProducts(category?: string) {
   });
 }
 
+// Fetch featured products (always fetches all products to filter featured)
+export function useFeaturedProducts() {
+  return useQuery({
+    queryKey: ["products", "featured"],
+    queryFn: async () => {
+      const response = await fetch("/api/products");
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+      const products = await response.json() as Promise<Product[]>;
+      return products;
+    },
+    select: (products) => products.filter((p) => p.featured),
+  });
+}
+
 // Fetch single product
 export function useProduct(id: string) {
   return useQuery({

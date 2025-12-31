@@ -1,16 +1,70 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductFilter } from "@/components/ProductFilter";
-import { useProducts } from "@/lib/api";
-import { PawPrint, Menu, Lock, Loader2 } from "lucide-react";
+import { useProducts, useFeaturedProducts } from "@/lib/api";
+import { PawPrint, Menu, Lock, Loader2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
+interface LayoutSettings {
+  featuredColumns: number;
+  featuredTotal: number;
+  curatedColumns: number;
+  curatedTotal: number;
+}
+
+const DEFAULT_LAYOUT: LayoutSettings = {
+  featuredColumns: 4,
+  featuredTotal: 4,
+  curatedColumns: 4,
+  curatedTotal: 8,
+};
+
+function getLayoutSettings(): LayoutSettings {
+  try {
+    const saved = localStorage.getItem("layoutSettings");
+    return saved ? { ...DEFAULT_LAYOUT, ...JSON.parse(saved) } : DEFAULT_LAYOUT;
+  } catch {
+    return DEFAULT_LAYOUT;
+  }
+}
+
 export default function Home() {
   const [category, setCategory] = useState("All");
+  const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>(DEFAULT_LAYOUT);
   const { data: products, isLoading, error } = useProducts(category);
+  const { data: allFeaturedProducts } = useFeaturedProducts();
+
+  useEffect(() => {
+    setLayoutSettings(getLayoutSettings());
+    
+    const handleStorage = () => setLayoutSettings(getLayoutSettings());
+    window.addEventListener("storage", handleStorage);
+    
+    const checkLayoutUpdates = () => setLayoutSettings(getLayoutSettings());
+    const interval = setInterval(checkLayoutUpdates, 1000);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const featuredProducts = allFeaturedProducts?.slice(0, layoutSettings.featuredTotal) || [];
+  const curatedProducts = products?.slice(0, layoutSettings.curatedTotal) || [];
+
+  const getGridClass = (columns: number) => {
+    switch (columns) {
+      case 2: return "grid-cols-1 sm:grid-cols-2";
+      case 3: return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+      case 4: return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+      case 5: return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5";
+      case 6: return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
+      default: return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans">
@@ -56,6 +110,27 @@ export default function Home() {
       <main className="pb-20">
         <Hero />
         
+        {/* Featured Products Section */}
+        {featuredProducts.length > 0 && (
+          <div className="container mx-auto px-4 mt-12">
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+                <Star className="w-4 h-4 fill-amber-500" />
+                Max's Favorites
+              </div>
+              <h2 className="font-heading text-3xl font-bold text-gray-900 mb-2">Featured Products</h2>
+              <p className="text-gray-500">Hand-picked favorites that Max absolutely loves.</p>
+            </div>
+            
+            <div className={`grid ${getGridClass(layoutSettings.featuredColumns)} gap-6`}>
+              {featuredProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} featured />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Curated With Love Section */}
         <div className="container mx-auto px-4 mt-12">
           <div className="text-center mb-10">
             <h2 className="font-heading text-3xl font-bold text-gray-900 mb-2">Curated With Love</h2>
@@ -76,15 +151,15 @@ export default function Home() {
             </div>
           )}
 
-          {!isLoading && !error && products && (
+          {!isLoading && !error && curatedProducts && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {products.map((product, index) => (
+              <div className={`grid ${getGridClass(layoutSettings.curatedColumns)} gap-6`}>
+                {curatedProducts.map((product, index) => (
                   <ProductCard key={product.id} product={product} index={index} />
                 ))}
               </div>
               
-              {products.length === 0 && (
+              {curatedProducts.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                   <p className="text-gray-400 text-lg">No products found in this category yet!</p>
                   <Button variant="link" onClick={() => setCategory("All")} className="mt-2 text-primary">

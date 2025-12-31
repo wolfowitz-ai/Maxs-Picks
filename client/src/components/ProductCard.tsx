@@ -1,25 +1,32 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PawPrint, ExternalLink } from "lucide-react";
+import { PawPrint, ExternalLink, Star } from "lucide-react";
 import type { Product } from "@shared/schema";
 import { motion } from "framer-motion";
 
 interface ProductCardProps {
   product: Product;
   index: number;
+  featured?: boolean;
 }
 
-export function ProductCard({ product, index }: ProductCardProps) {
+export function ProductCard({ product, index, featured = false }: ProductCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
     >
-      <Card className="group overflow-hidden border-none shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white h-full flex flex-col">
+      <Card className={`group overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white h-full flex flex-col ${featured ? "border-2 border-amber-300 ring-2 ring-amber-100" : "border-none"}`}>
         {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-gray-50">
+          {featured && (
+            <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm">
+              <Star className="w-3 h-3 fill-white" />
+              Featured
+            </div>
+          )}
           <img
             src={product.image}
             alt={product.title}

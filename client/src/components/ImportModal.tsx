@@ -155,6 +155,7 @@ export function ImportModal() {
         category: stagedProduct.category,
         amazonUrl: stagedProduct.amazonUrl,
         asin: stagedProduct.asin,
+        featured: false,
       };
 
       createProduct.mutate(productToSave, {

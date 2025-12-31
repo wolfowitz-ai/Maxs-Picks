@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -42,6 +42,7 @@ export const products = pgTable("products", {
   category: text("category").notNull(),
   amazonUrl: text("amazon_url").notNull(),
   asin: text("asin"),
+  featured: boolean("featured").notNull().default(false),
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({
