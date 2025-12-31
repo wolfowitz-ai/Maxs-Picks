@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useProducts, useDeleteProduct } from "@/lib/api";
+import { useProducts, useDeleteProduct, useCategories, useCreateCategory, useDeleteCategory } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,9 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ScraperModal } from "@/components/ScraperModal";
-import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut } from "lucide-react";
+import { ProductFormModal } from "@/components/ProductFormModal";
+import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import type { Product } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,12 +26,19 @@ import {
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("products");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const { toast } = useToast();
   const { isAuthenticated, logout } = useAuth();
   const [, setLocation] = useLocation();
-  const { data: products, isLoading } = useProducts();
+  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
   const deleteProduct = useDeleteProduct();
+  const createCategory = useCreateCategory();
+  const deleteCategory = useDeleteCategory();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -44,6 +53,40 @@ export default function Admin() {
   const handleLogout = () => {
     logout();
     setLocation("/admin/login");
+  };
+
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setIsProductModalOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsProductModalOpen(true);
+  };
+
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) return;
+    
+    createCategory.mutate(
+      { name: newCategoryName.trim() },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Category added",
+            description: `"${newCategoryName}" has been created.`,
+          });
+          setNewCategoryName("");
+        },
+        onError: (error) => {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -69,6 +112,14 @@ export default function Admin() {
             Products
           </Button>
           <Button 
+            variant={activeTab === "categories" ? "secondary" : "ghost"} 
+            className="w-full justify-start"
+            onClick={() => setActiveTab("categories")}
+          >
+            <Tags className="w-4 h-4 mr-2" />
+            Categories
+          </Button>
+          <Button 
             variant={activeTab === "settings" ? "secondary" : "ghost"} 
             className="w-full justify-start"
             onClick={() => setActiveTab("settings")}
@@ -76,6 +127,16 @@ export default function Admin() {
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>
+          <div className="pt-4 border-t border-gray-100 mt-4">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-gray-500"
+              onClick={() => setLocation("/")}
+            >
+              <Home className="w-4 h-4 mr-2" />
+              View Site
+            </Button>
+          </div>
         </nav>
 
         <div className="p-4 border-t border-gray-100">
@@ -100,36 +161,35 @@ export default function Admin() {
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-5xl mx-auto space-y-8">
           
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="font-heading text-3xl font-bold text-gray-900">Product Management</h1>
-              <p className="text-gray-500">Manage Max's curated list and affiliate links.</p>
-            </div>
-            <div className="flex gap-3">
-              <ScraperModal />
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                Add Product Manually
-              </Button>
-            </div>
-          </div>
+          {activeTab === "products" && (
+            <>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="font-heading text-3xl font-bold text-gray-900">Product Management</h1>
+                  <p className="text-gray-500">Manage Max's curated list and affiliate links.</p>
+                </div>
+                <div className="flex gap-3">
+                  <ScraperModal />
+                  <Button className="gap-2" onClick={handleAddProduct} data-testid="button-add-product">
+                    <Plus className="w-4 h-4" />
+                    Add Product
+                  </Button>
+                </div>
+              </div>
 
-          <Tabs defaultValue="products" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-            <TabsContent value="products" className="space-y-6">
-              {/* Product List */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Inventory</CardTitle>
+                  <CardTitle>Inventory ({products?.length || 0} products)</CardTitle>
                   <CardDescription>
                     Review and edit currently live products.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {isLoading ? (
+                  {productsLoading ? (
                     <div className="flex justify-center py-12">
                       <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
-                  ) : (
+                  ) : products && products.length > 0 ? (
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -142,8 +202,8 @@ export default function Admin() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {products?.map((product) => (
-                          <TableRow key={product.id}>
+                        {products.map((product) => (
+                          <TableRow key={product.id} data-testid={`row-product-${product.id}`}>
                             <TableCell>
                               <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-50 border border-gray-100">
                                 <img src={product.image} alt={product.title} className="w-full h-full object-cover" />
@@ -164,14 +224,21 @@ export default function Admin() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-primary">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-gray-500 hover:text-primary"
+                                  onClick={() => handleEditProduct(product)}
+                                  data-testid={`button-edit-${product.id}`}
+                                >
                                   <Pencil className="w-4 h-4" />
                                 </Button>
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-8 w-8 text-gray-500 hover:text-red-500"
-                                  onClick={() => setDeleteId(product.id)}
+                                  onClick={() => setDeleteProductId(product.id)}
+                                  data-testid={`button-delete-${product.id}`}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -181,72 +248,229 @@ export default function Admin() {
                         ))}
                       </TableBody>
                     </Table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Package className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">No products yet. Add your first product!</p>
+                      <Button className="mt-4" onClick={handleAddProduct}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Product
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </>
+          )}
 
-            <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Product?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete this product from Max's recommendations.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-red-500 hover:bg-red-600"
-                    onClick={() => {
-                      if (deleteId) {
-                        deleteProduct.mutate(deleteId, {
-                          onSuccess: () => {
-                            toast({
-                              title: "Product deleted",
-                              description: "The product has been removed from your catalog.",
-                            });
-                            setDeleteId(null);
-                          },
-                          onError: () => {
-                            toast({
-                              title: "Error",
-                              description: "Failed to delete product. Please try again.",
-                              variant: "destructive",
-                            });
-                          },
-                        });
-                      }
-                    }}
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          {activeTab === "categories" && (
+            <>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="font-heading text-3xl font-bold text-gray-900">Category Management</h1>
+                  <p className="text-gray-500">Organize products into categories.</p>
+                </div>
+              </div>
 
-            <TabsContent value="settings">
               <Card>
                 <CardHeader>
-                  <CardTitle>Site Settings</CardTitle>
-                  <CardDescription>Configure global site parameters.</CardDescription>
+                  <CardTitle>Add New Category</CardTitle>
+                  <CardDescription>
+                    Create a new category for organizing products.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                   <div className="grid w-full max-w-sm items-center gap-1.5">
-                      <Label htmlFor="title">Site Title</Label>
-                      <Input type="text" id="title" placeholder="Max's Top Picks" />
-                    </div>
-                    <div className="grid w-full max-w-sm items-center gap-1.5">
-                      <Label htmlFor="insta">Instagram Handle</Label>
-                      <Input type="text" id="insta" placeholder="@max_maltipoo" />
-                    </div>
+                <CardContent>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Category name (e.g., Toys, Treats)"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
+                      className="max-w-sm"
+                      data-testid="input-category-name"
+                    />
+                    <Button 
+                      onClick={handleAddCategory} 
+                      disabled={!newCategoryName.trim() || createCategory.isPending}
+                      data-testid="button-add-category"
+                    >
+                      {createCategory.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Add Category
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing Categories ({categories?.length || 0})</CardTitle>
+                  <CardDescription>
+                    Manage your product categories.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {categoriesLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : categories && categories.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Products</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {categories.map((category) => {
+                          const productCount = products?.filter(p => p.category === category.name).length || 0;
+                          return (
+                            <TableRow key={category.id} data-testid={`row-category-${category.id}`}>
+                              <TableCell className="font-medium">{category.name}</TableCell>
+                              <TableCell>
+                                <span className="text-gray-500">{productCount} products</span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-gray-500 hover:text-red-500"
+                                  onClick={() => setDeleteCategoryId(category.id)}
+                                  disabled={productCount > 0}
+                                  title={productCount > 0 ? "Cannot delete category with products" : "Delete category"}
+                                  data-testid={`button-delete-category-${category.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Tags className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">No categories yet. Add your first category above!</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "settings" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Site Settings</CardTitle>
+                <CardDescription>Configure global site parameters.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                  <Label htmlFor="title">Site Title</Label>
+                  <Input type="text" id="title" placeholder="Max's Top Picks" />
+                </div>
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                  <Label htmlFor="insta">Instagram Handle</Label>
+                  <Input type="text" id="insta" placeholder="@max_maltipoo" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         </div>
       </main>
+
+      {/* Product Form Modal */}
+      <ProductFormModal
+        isOpen={isProductModalOpen}
+        onClose={() => {
+          setIsProductModalOpen(false);
+          setEditingProduct(null);
+        }}
+        product={editingProduct}
+      />
+
+      {/* Delete Product Confirmation */}
+      <AlertDialog open={!!deleteProductId} onOpenChange={(open) => !open && setDeleteProductId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this product from Max's recommendations.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() => {
+                if (deleteProductId) {
+                  deleteProduct.mutate(deleteProductId, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Product deleted",
+                        description: "The product has been removed from your catalog.",
+                      });
+                      setDeleteProductId(null);
+                    },
+                    onError: () => {
+                      toast({
+                        title: "Error",
+                        description: "Failed to delete product. Please try again.",
+                        variant: "destructive",
+                      });
+                    },
+                  });
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Category Confirmation */}
+      <AlertDialog open={!!deleteCategoryId} onOpenChange={(open) => !open && setDeleteCategoryId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Category?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Make sure no products are using this category before deleting.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() => {
+                if (deleteCategoryId) {
+                  deleteCategory.mutate(deleteCategoryId, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Category deleted",
+                        description: "The category has been removed.",
+                      });
+                      setDeleteCategoryId(null);
+                    },
+                    onError: (error) => {
+                      toast({
+                        title: "Error",
+                        description: error.message || "Failed to delete category.",
+                        variant: "destructive",
+                      });
+                    },
+                  });
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { categories } from "@/lib/data";
+import { useCategories } from "@/lib/api";
 
 interface FilterProps {
   currentCategory: string;
@@ -8,9 +8,13 @@ interface FilterProps {
 }
 
 export function ProductFilter({ currentCategory, onSelectCategory }: FilterProps) {
+  const { data: categoriesData } = useCategories();
+  
+  const allCategories = ["All", ...(categoriesData?.map(c => c.name) || [])];
+
   return (
     <div className="flex flex-wrap justify-center gap-2 my-8 px-4">
-      {categories.map((category) => (
+      {allCategories.map((category) => (
         <Button
           key={category}
           variant={currentCategory === category ? "default" : "outline"}
@@ -21,6 +25,7 @@ export function ProductFilter({ currentCategory, onSelectCategory }: FilterProps
               ? "bg-primary text-white shadow-md scale-105" 
               : "bg-white border-gray-200 text-gray-600 hover:border-primary/50 hover:text-primary"
           )}
+          data-testid={`button-filter-${category.toLowerCase()}`}
         >
           {category}
         </Button>

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema } from "@shared/schema";
+import { insertProductSchema, insertCategorySchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 import { checkAdminAuth, verifyAdminPassword } from "./auth";
 import { scrapeAmazonProduct } from "./scraper";
@@ -130,6 +130,68 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting product:", error);
       res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
+
+  // Category routes
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const allCategories = await storage.getAllCategories();
+      res.json(allCategories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/categories", checkAdminAuth, async (req, res) => {
+    try {
+      const validationResult = insertCategorySchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const validationError = fromError(validationResult.error);
+        return res.status(400).json({ error: validationError.toString() });
+      }
+
+      const category = await storage.createCategory(validationResult.data);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating category:", error);
+      res.status(500).json({ error: "Failed to create category" });
+    }
+  });
+
+  app.patch("/api/categories/:id", checkAdminAuth, async (req, res) => {
+    try {
+      const partialSchema = insertCategorySchema.partial();
+      const validationResult = partialSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const validationError = fromError(validationResult.error);
+        return res.status(400).json({ error: validationError.toString() });
+      }
+
+      const category = await storage.updateCategory(req.params.id, validationResult.data);
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      res.json(category);
+    } catch (error) {
+      console.error("Error updating category:", error);
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/categories/:id", checkAdminAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteCategory(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      res.status(500).json({ error: "Failed to delete category" });
     }
   });
 

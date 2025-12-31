@@ -7,8 +7,11 @@ import {
   type InsertUser,
   type Product,
   type InsertProduct,
+  type Category,
+  type InsertCategory,
   users,
   products,
+  categories,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -24,6 +27,13 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: string): Promise<boolean>;
+
+  // Category methods
+  getAllCategories(): Promise<Category[]>;
+  getCategoryById(id: string): Promise<Category | undefined>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
+  deleteCategory(id: string): Promise<boolean>;
 }
 
 const pool = new Pool({
@@ -82,6 +92,35 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProduct(id: string): Promise<boolean> {
     const result = await db.delete(products).where(eq(products.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Category methods
+  async getAllCategories(): Promise<Category[]> {
+    return await db.select().from(categories);
+  }
+
+  async getCategoryById(id: string): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    return category;
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const [category] = await db.insert(categories).values(insertCategory).returning();
+    return category;
+  }
+
+  async updateCategory(id: string, updateData: Partial<InsertCategory>): Promise<Category | undefined> {
+    const [category] = await db
+      .update(categories)
+      .set(updateData)
+      .where(eq(categories.id, id))
+      .returning();
+    return category;
+  }
+
+  async deleteCategory(id: string): Promise<boolean> {
+    const result = await db.delete(categories).where(eq(categories.id, id)).returning();
     return result.length > 0;
   }
 }

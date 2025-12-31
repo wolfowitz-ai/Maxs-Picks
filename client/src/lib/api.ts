@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Product } from "@shared/schema";
+import type { Product, Category, InsertProduct, InsertCategory } from "@shared/schema";
 
 // Helper to get auth headers
 function getAuthHeaders(): HeadersInit {
@@ -137,6 +137,95 @@ export function useScrapeProduct() {
       }
       
       return response.json();
+    },
+  });
+}
+
+// Category hooks
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/categories");
+      if (!response.ok) {
+        throw new Error("Failed to fetch categories");
+      }
+      return response.json() as Promise<Category[]>;
+    },
+  });
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (category: InsertCategory) => {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(category),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create category");
+      }
+      
+      return response.json() as Promise<Category>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertCategory> }) => {
+      const response = await fetch(`/api/categories/${id}`, {
+        method: "PATCH",
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update category");
+      }
+      
+      return response.json() as Promise<Category>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/categories/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete category");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 }
