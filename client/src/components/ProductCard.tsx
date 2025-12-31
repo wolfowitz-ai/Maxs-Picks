@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, PawPrint, ExternalLink } from "lucide-react";
+import { PawPrint, ExternalLink } from "lucide-react";
 import { Product } from "@/lib/data";
 import { motion } from "framer-motion";
 
@@ -36,7 +36,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
               {product.category}
             </Badge>
             <div className="flex items-center gap-1 text-amber-400">
-              <Star className="w-4 h-4 fill-current" />
+              <PawPrint className="w-4 h-4 fill-current" />
               <span className="text-sm font-semibold text-gray-700">{product.rating}</span>
               <span className="text-xs text-gray-400">({product.reviews})</span>
             </div>
