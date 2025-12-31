@@ -5,7 +5,10 @@ import { insertProductSchema, insertCategorySchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 import { checkAdminAuth, verifyAdminPassword } from "./auth";
 import { scrapeAmazonProduct, extractASINFromUrl } from "./scraper";
-import { fetchFromPAAPI, extractASIN } from "./amazon-api";
+import { fetchFromPAAPI, extractASIN, getAvailableMarketplaces } from "./amazon-api";
+import axios from "axios";
+import fs from "fs";
+import path from "path";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -35,17 +38,22 @@ export async function registerRoutes(
     }
   });
 
+  // Get available marketplaces for PA-API
+  app.get("/api/admin/marketplaces", checkAdminAuth, (req, res) => {
+    res.json(getAvailableMarketplaces());
+  });
+
   // Amazon PA-API import (official API)
   app.post("/api/admin/import/pa-api", checkAdminAuth, async (req, res) => {
     try {
-      const { url, imageCount = 1 } = req.body;
+      const { url, imageCount = 1, marketplace = "US" } = req.body;
       
       if (!url) {
         return res.status(400).json({ error: "URL or ASIN is required" });
       }
 
       const asin = extractASIN(url);
-      const productData = await fetchFromPAAPI(asin, imageCount);
+      const productData = await fetchFromPAAPI(asin, imageCount, marketplace);
       res.json(productData);
     } catch (error) {
       console.error("Error fetching from PA-API:", error);
@@ -84,6 +92,48 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error scraping Amazon:", error);
       res.status(500).json({ error: error instanceof Error ? error.message : "Failed to scrape product" });
+    }
+  });
+
+  // Download and save image locally
+  app.post("/api/admin/save-image", checkAdminAuth, async (req, res) => {
+    try {
+      const { imageUrl, filename } = req.body;
+      
+      if (!imageUrl) {
+        return res.status(400).json({ error: "Image URL is required" });
+      }
+
+      const response = await axios.get(imageUrl, {
+        responseType: "arraybuffer",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        timeout: 30000,
+      });
+
+      const contentType = response.headers["content-type"] || "image/jpeg";
+      const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+      
+      const sanitizedFilename = (filename || `product_${Date.now()}`)
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+        .substring(0, 50);
+      
+      const finalFilename = `${sanitizedFilename}_${Date.now()}.${ext}`;
+      const uploadDir = path.join(process.cwd(), "attached_assets", "product_images");
+      
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      const filePath = path.join(uploadDir, finalFilename);
+      fs.writeFileSync(filePath, response.data);
+      
+      const localPath = `/attached_assets/product_images/${finalFilename}`;
+      res.json({ localPath, filename: finalFilename });
+    } catch (error) {
+      console.error("Error saving image:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to save image" });
     }
   });
   

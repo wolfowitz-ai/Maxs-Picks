@@ -78,11 +78,23 @@ shared/           # Shared code between client/server
 
 #### Amazon PA-API Import (Optional)
 - `AMAZON_ACCESS_KEY`: Amazon PA-API access key from Associates Central
-- `AMAZON_SECRET_KEY`: Amazon PA-API secret key
+- `AMAZON_SECRET_KEY`: Amazon PA-API secret key  
 - `AMAZON_PARTNER_TAG`: Your Amazon Associates tracking ID (e.g., "maxtoppicks-20")
+
+**How to get PA-API credentials:**
+1. Join the Amazon Associates program at your marketplace (e.g., affiliate-program.amazon.com)
+2. Get approved (requires an active website/app)
+3. Go to Associates Central → Tools → Product Advertising API
+4. Generate your Access Key and Secret Key
+5. Your Partner Tag is your Store/Tracking ID (e.g., "yourstore-20")
+
+**Supported Marketplaces:** US, CA, UK, DE, FR, ES, IT, JP, AU, MX
 
 #### Scraper Fallback (Optional)
 - `SCRAPER_API_KEY`: ScraperAPI key for reliable scraping when direct requests fail (free tier: 1000 requests/month at scraperapi.com)
+
+#### Local Image Storage
+When importing products, the "Save image locally" toggle downloads Amazon images and stores them in `attached_assets/product_images/`. This protects against Amazon image URLs expiring or being blocked.
 
 ### Key NPM Packages
 - `@tanstack/react-query`: Data fetching and caching

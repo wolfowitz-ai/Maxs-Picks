@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { useCategories, useCreateProduct } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { Download, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, HardDrive } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface StagedProduct {
   title: string;
@@ -30,10 +31,13 @@ export function ImportModal() {
   const [importMethod, setImportMethod] = useState<"api" | "scraper">("scraper");
   const [url, setUrl] = useState("");
   const [imageCount, setImageCount] = useState("1");
+  const [marketplace, setMarketplace] = useState("US");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stagedProduct, setStagedProduct] = useState<StagedProduct | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [saveImageLocally, setSaveImageLocally] = useState(true);
+  const [isSavingImage, setIsSavingImage] = useState(false);
   
   const { toast } = useToast();
   const { data: categories } = useCategories();
@@ -44,6 +48,29 @@ export function ImportModal() {
     setError(null);
     setStagedProduct(null);
     setSelectedImageIndex(0);
+    setIsSavingImage(false);
+  };
+
+  const saveImageToLocal = async (imageUrl: string, productTitle: string): Promise<string> => {
+    const token = localStorage.getItem("adminToken");
+    const response = await fetch("/api/admin/save-image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        imageUrl,
+        filename: productTitle.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to save image locally");
+    }
+
+    const data = await response.json();
+    return data.localPath;
   };
 
   const handleFetch = async () => {
@@ -65,6 +92,7 @@ export function ImportModal() {
         body: JSON.stringify({ 
           url: url.trim(),
           imageCount: parseInt(imageCount),
+          marketplace: importMethod === "api" ? marketplace : undefined,
         }),
       });
 
@@ -95,39 +123,66 @@ export function ImportModal() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!stagedProduct) return;
 
-    const productToSave = {
-      title: stagedProduct.title,
-      description: stagedProduct.description,
-      maxsTake: stagedProduct.maxsTake,
-      price: stagedProduct.price,
-      rating: stagedProduct.rating,
-      reviews: stagedProduct.reviews,
-      image: stagedProduct.images[selectedImageIndex] || stagedProduct.image,
-      category: stagedProduct.category,
-      amazonUrl: stagedProduct.amazonUrl,
-      asin: stagedProduct.asin,
-    };
+    setIsSavingImage(true);
 
-    createProduct.mutate(productToSave, {
-      onSuccess: () => {
-        toast({
-          title: "Product imported!",
-          description: `"${stagedProduct.title}" has been added to your catalog.`,
-        });
-        resetState();
-        setIsOpen(false);
-      },
-      onError: (error) => {
-        toast({
-          title: "Import failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
+    try {
+      let finalImageUrl = stagedProduct.images[selectedImageIndex] || stagedProduct.image;
+
+      if (saveImageLocally && finalImageUrl && finalImageUrl.startsWith("http")) {
+        try {
+          finalImageUrl = await saveImageToLocal(finalImageUrl, stagedProduct.title);
+        } catch (imgError) {
+          console.error("Failed to save image locally, using remote URL:", imgError);
+          toast({
+            title: "Image save warning",
+            description: "Could not save image locally, using remote URL instead.",
+            variant: "default",
+          });
+        }
+      }
+
+      const productToSave = {
+        title: stagedProduct.title,
+        description: stagedProduct.description,
+        maxsTake: stagedProduct.maxsTake,
+        price: stagedProduct.price,
+        rating: stagedProduct.rating,
+        reviews: stagedProduct.reviews,
+        image: finalImageUrl,
+        category: stagedProduct.category,
+        amazonUrl: stagedProduct.amazonUrl,
+        asin: stagedProduct.asin,
+      };
+
+      createProduct.mutate(productToSave, {
+        onSuccess: () => {
+          toast({
+            title: "Product imported!",
+            description: `"${stagedProduct.title}" has been added to your catalog.`,
+          });
+          resetState();
+          setIsOpen(false);
+        },
+        onError: (error) => {
+          toast({
+            title: "Import failed",
+            description: error.message,
+            variant: "destructive",
+          });
+          setIsSavingImage(false);
+        },
+      });
+    } catch (error) {
+      setIsSavingImage(false);
+      toast({
+        title: "Import failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
   };
 
   const updateStagedField = (field: keyof StagedProduct, value: any) => {
@@ -169,6 +224,27 @@ export function ImportModal() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
                   <p className="font-medium mb-1">Amazon Product Advertising API</p>
                   <p>Uses your official Amazon Associates API credentials. Most reliable method with full image access.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Amazon Marketplace</Label>
+                  <Select value={marketplace} onValueChange={setMarketplace}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="US">United States</SelectItem>
+                      <SelectItem value="CA">Canada</SelectItem>
+                      <SelectItem value="UK">United Kingdom</SelectItem>
+                      <SelectItem value="DE">Germany</SelectItem>
+                      <SelectItem value="FR">France</SelectItem>
+                      <SelectItem value="ES">Spain</SelectItem>
+                      <SelectItem value="IT">Italy</SelectItem>
+                      <SelectItem value="JP">Japan</SelectItem>
+                      <SelectItem value="AU">Australia</SelectItem>
+                      <SelectItem value="MX">Mexico</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Select the Amazon store where your affiliate account is registered.</p>
                 </div>
               </TabsContent>
 
@@ -372,18 +448,31 @@ export function ImportModal() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button variant="outline" onClick={() => setStagedProduct(null)}>
-                Back
-              </Button>
-              <Button 
-                onClick={handleSave} 
-                disabled={!stagedProduct.title || !stagedProduct.maxsTake || createProduct.isPending}
-                data-testid="button-save-import"
-              >
-                {createProduct.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save to Catalog
-              </Button>
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex items-center gap-3">
+                <Switch 
+                  id="save-locally" 
+                  checked={saveImageLocally} 
+                  onCheckedChange={setSaveImageLocally}
+                />
+                <Label htmlFor="save-locally" className="flex items-center gap-2 text-sm cursor-pointer">
+                  <HardDrive className="w-4 h-4" />
+                  Save image locally
+                </Label>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setStagedProduct(null)}>
+                  Back
+                </Button>
+                <Button 
+                  onClick={handleSave} 
+                  disabled={!stagedProduct.title || !stagedProduct.maxsTake || createProduct.isPending || isSavingImage}
+                  data-testid="button-save-import"
+                >
+                  {(createProduct.isPending || isSavingImage) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save to Catalog
+                </Button>
+              </div>
             </div>
           </div>
         )}

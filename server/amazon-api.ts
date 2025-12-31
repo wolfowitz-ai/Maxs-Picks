@@ -20,6 +20,87 @@ interface ProductData {
   asin?: string;
 }
 
+export interface MarketplaceConfig {
+  code: string;
+  name: string;
+  host: string;
+  region: string;
+  domain: string;
+}
+
+export const MARKETPLACES: Record<string, MarketplaceConfig> = {
+  US: {
+    code: "US",
+    name: "United States",
+    host: "webservices.amazon.com",
+    region: "us-east-1",
+    domain: "www.amazon.com",
+  },
+  CA: {
+    code: "CA",
+    name: "Canada",
+    host: "webservices.amazon.ca",
+    region: "us-east-1",
+    domain: "www.amazon.ca",
+  },
+  UK: {
+    code: "UK",
+    name: "United Kingdom",
+    host: "webservices.amazon.co.uk",
+    region: "eu-west-1",
+    domain: "www.amazon.co.uk",
+  },
+  DE: {
+    code: "DE",
+    name: "Germany",
+    host: "webservices.amazon.de",
+    region: "eu-west-1",
+    domain: "www.amazon.de",
+  },
+  FR: {
+    code: "FR",
+    name: "France",
+    host: "webservices.amazon.fr",
+    region: "eu-west-1",
+    domain: "www.amazon.fr",
+  },
+  ES: {
+    code: "ES",
+    name: "Spain",
+    host: "webservices.amazon.es",
+    region: "eu-west-1",
+    domain: "www.amazon.es",
+  },
+  IT: {
+    code: "IT",
+    name: "Italy",
+    host: "webservices.amazon.it",
+    region: "eu-west-1",
+    domain: "www.amazon.it",
+  },
+  JP: {
+    code: "JP",
+    name: "Japan",
+    host: "webservices.amazon.co.jp",
+    region: "us-west-2",
+    domain: "www.amazon.co.jp",
+  },
+  AU: {
+    code: "AU",
+    name: "Australia",
+    host: "webservices.amazon.com.au",
+    region: "us-west-2",
+    domain: "www.amazon.com.au",
+  },
+  MX: {
+    code: "MX",
+    name: "Mexico",
+    host: "webservices.amazon.com.mx",
+    region: "us-east-1",
+    domain: "www.amazon.com.mx",
+  },
+};
+
 function getAWSSignature(
   secretKey: string,
   dateStamp: string,
@@ -43,13 +124,12 @@ function createAuthHeaders(
   const dateStamp = amzDate.slice(0, 8);
   
   const service = "ProductAdvertisingAPI";
-  const endpoint = `webservices.amazon.com`;
   const path = `/paapi5/${operation.toLowerCase()}`;
   
   const canonicalHeaders = [
     `content-encoding:amz-1.0`,
     `content-type:application/json; charset=utf-8`,
-    `host:${endpoint}`,
+    `host:${credentials.host}`,
     `x-amz-date:${amzDate}`,
     `x-amz-target:com.amazon.paapi5.v1.ProductAdvertisingAPIv1.${operation}`,
   ].join("\n") + "\n";
@@ -85,7 +165,7 @@ function createAuthHeaders(
   return {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Encoding": "amz-1.0",
-    "Host": endpoint,
+    "Host": credentials.host,
     "X-Amz-Date": amzDate,
     "X-Amz-Target": `com.amazon.paapi5.v1.ProductAdvertisingAPIv1.${operation}`,
     "Authorization": authorizationHeader,
@@ -94,7 +174,8 @@ function createAuthHeaders(
 
 export async function fetchFromPAAPI(
   asin: string,
-  imageCount: number = 1
+  imageCount: number = 1,
+  marketplaceCode: string = "US"
 ): Promise<ProductData> {
   const accessKey = process.env.AMAZON_ACCESS_KEY;
   const secretKey = process.env.AMAZON_SECRET_KEY;
@@ -104,19 +185,21 @@ export async function fetchFromPAAPI(
     throw new Error("Amazon PA-API credentials not configured. Please add AMAZON_ACCESS_KEY, AMAZON_SECRET_KEY, and AMAZON_PARTNER_TAG to your environment variables.");
   }
   
+  const marketplace = MARKETPLACES[marketplaceCode] || MARKETPLACES.US;
+  
   const credentials: PAAPICredentials = {
     accessKey,
     secretKey,
     partnerTag,
-    host: "webservices.amazon.com",
-    region: "us-east-1",
+    host: marketplace.host,
+    region: marketplace.region,
   };
   
   const payload = JSON.stringify({
     ItemIds: [asin],
     PartnerTag: partnerTag,
     PartnerType: "Associates",
-    Marketplace: "www.amazon.com",
+    Marketplace: marketplace.domain,
     Resources: [
       "ItemInfo.Title",
       "ItemInfo.Features",
@@ -168,7 +251,7 @@ export async function fetchFromPAAPI(
       rating: item.CustomerReviews?.StarRating?.Value?.toString(),
       reviews: parseInt(item.CustomerReviews?.Count?.DisplayValue?.replace(/,/g, "") || "0"),
       images: images.slice(0, imageCount),
-      amazonUrl: item.DetailPageURL || `https://www.amazon.com/dp/${asin}?tag=${partnerTag}`,
+      amazonUrl: item.DetailPageURL || `https://${marketplace.domain}/dp/${asin}?tag=${partnerTag}`,
       asin,
     };
   } catch (error) {
@@ -189,7 +272,7 @@ export function extractASIN(urlOrAsin: string): string {
     /\/dp\/([A-Z0-9]{10})/i,
     /\/gp\/product\/([A-Z0-9]{10})/i,
     /\/gp\/aw\/d\/([A-Z0-9]{10})/i,
-    /amazon\.com.*?([A-Z0-9]{10})/i,
+    /amazon\.[a-z.]+.*?([A-Z0-9]{10})/i,
   ];
   
   for (const pattern of patterns) {
@@ -200,4 +283,8 @@ export function extractASIN(urlOrAsin: string): string {
   }
   
   throw new Error("Could not extract ASIN from URL. Please provide a valid Amazon product URL or ASIN.");
+}
+
+export function getAvailableMarketplaces(): MarketplaceConfig[] {
+  return Object.values(MARKETPLACES);
 }
