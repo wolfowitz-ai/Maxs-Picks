@@ -138,9 +138,9 @@ export default function Home() {
               </div>
             ) : (
               <>
-                <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Home</a>
-                <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Categories</a>
-                <a href="#" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">About Max</a>
+                <a href="/" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Home</a>
+                <a href="/products" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Categories</a>
+                <a href="/about" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">About Max</a>
                 <Button variant="ghost" size="icon" onClick={() => setShowSearch(true)} data-testid="button-search">
                   <Search className="w-4 h-4" />
                 </Button>
@@ -163,9 +163,9 @@ export default function Home() {
               </SheetTrigger>
               <SheetContent>
                 <div className="flex flex-col gap-4 mt-8">
-                  <a href="#" className="text-lg font-medium">Home</a>
-                  <a href="#" className="text-lg font-medium">Categories</a>
-                  <a href="#" className="text-lg font-medium">About Max</a>
+                  <a href="/" className="text-lg font-medium">Home</a>
+                  <a href="/products" className="text-lg font-medium">Categories</a>
+                  <a href="/about" className="text-lg font-medium">About Max</a>
                 </div>
               </SheetContent>
             </Sheet>

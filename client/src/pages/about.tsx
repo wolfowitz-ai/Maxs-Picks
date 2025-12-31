@@ -135,12 +135,12 @@ export default function About() {
               </div>
 
               <div className="text-center pt-6">
-                <Link href="/">
+                <a href="/#featured-products">
                   <Button size="lg" className="rounded-full h-14 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-blue-200">
                     <PawPrint className="w-5 h-5 mr-2" />
                     Browse My Picks
                   </Button>
-                </Link>
+                </a>
               </div>
             </div>
           </div>
