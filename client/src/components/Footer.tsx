@@ -1,15 +1,28 @@
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { PawPrint, Instagram, Heart } from "lucide-react";
+import { getSiteSettings, type SiteSettings } from "@/lib/siteSettings";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(getSiteSettings);
+
+  useEffect(() => {
+    const checkSettings = () => setSiteSettings(getSiteSettings());
+    const interval = setInterval(checkSettings, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const instagramUrl = siteSettings.instagramHandle.startsWith("@")
+    ? `https://instagram.com/${siteSettings.instagramHandle.slice(1)}`
+    : `https://instagram.com/${siteSettings.instagramHandle}`;
   
   return (
     <footer className="bg-white border-t border-gray-100 mt-20">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center md:text-left">
           <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4 justify-center md:justify-start">
               <div className="bg-primary text-white p-2 rounded-lg">
                 <PawPrint className="w-5 h-5" />
               </div>
@@ -17,18 +30,18 @@ export function Footer() {
                 Max's<span className="text-primary">Picks</span>
               </span>
             </div>
-            <p className="text-gray-500 text-sm max-w-sm mb-4">
+            <p className="text-gray-500 text-sm max-w-sm mb-4 mx-auto md:mx-0">
               Hi, I'm Max! I personally test and curate every product on this site. 
               Only the best makes it onto my favorites list.
             </p>
             <a 
-              href="https://instagram.com" 
+              href={instagramUrl}
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-gray-500 hover:text-pink-500 transition-colors"
             >
               <Instagram className="w-5 h-5" />
-              <span className="text-sm">Follow @MaxTheMaltipoo</span>
+              <span className="text-sm">Follow {siteSettings.instagramHandle}</span>
             </a>
           </div>
 

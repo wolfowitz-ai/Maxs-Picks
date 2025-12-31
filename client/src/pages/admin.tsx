@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getSiteSettings, saveSiteSettings, type SiteSettings } from "@/lib/siteSettings";
 import { useLocation } from "wouter";
 import { useProducts, useDeleteProduct, useCategories, useCreateCategory, useDeleteCategory, useUpdateProduct, useUpdateCategory } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ export default function Admin() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>(getLayoutSettings);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(getSiteSettings);
   
   const { toast } = useToast();
   const { isAuthenticated, logout } = useAuth();
@@ -143,6 +145,11 @@ export default function Admin() {
     const newSettings = { ...layoutSettings, [key]: value };
     setLayoutSettings(newSettings);
     saveLayoutSettings(newSettings);
+  };
+
+  const updateSiteSetting = (key: keyof SiteSettings, value: string) => {
+    const newSettings = saveSiteSettings({ [key]: value });
+    setSiteSettings(newSettings);
   };
 
   const handleStartEditCategory = (category: { id: string; name: string }) => {
@@ -677,11 +684,24 @@ export default function Admin() {
                 <CardContent className="space-y-4">
                   <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label htmlFor="title">Site Title</Label>
-                    <Input type="text" id="title" placeholder="Max's Top Picks" />
+                    <Input 
+                      type="text" 
+                      id="title" 
+                      placeholder="Max's Top Picks" 
+                      value={siteSettings.siteTitle}
+                      onChange={(e) => updateSiteSetting("siteTitle", e.target.value)}
+                    />
                   </div>
                   <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label htmlFor="insta">Instagram Handle</Label>
-                    <Input type="text" id="insta" placeholder="@max_maltipoo" />
+                    <Input 
+                      type="text" 
+                      id="insta" 
+                      placeholder="@MaxTheMaltipoo" 
+                      value={siteSettings.instagramHandle}
+                      onChange={(e) => updateSiteSetting("instagramHandle", e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Include the @ symbol (e.g., @MaxTheMaltipoo)</p>
                   </div>
                 </CardContent>
               </Card>
