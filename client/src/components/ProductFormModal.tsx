@@ -156,11 +156,21 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label htmlFor="maxsTake">Max's Take *</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="maxsTake">Max's Take *</Label>
+                <span className={`text-xs ${formData.maxsTake.length > 250 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                  {formData.maxsTake.length}/250
+                </span>
+              </div>
               <Textarea
                 id="maxsTake"
                 value={formData.maxsTake}
-                onChange={(e) => setFormData({ ...formData, maxsTake: e.target.value })}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  if (newValue.length <= 250 || newValue.length < formData.maxsTake.length) {
+                    setFormData({ ...formData, maxsTake: newValue.slice(0, 250) });
+                  }
+                }}
                 placeholder="What does Max think about this product?"
                 rows={2}
                 required

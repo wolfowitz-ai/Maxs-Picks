@@ -4,7 +4,7 @@ import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductFilter } from "@/components/ProductFilter";
 import { useProducts, useFeaturedProducts } from "@/lib/api";
-import { PawPrint, Menu, Lock, Loader2, Star, Search, X } from "lucide-react";
+import { PawPrint, Menu, Lock, Loader2, Bone, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -221,8 +221,8 @@ export default function Home() {
           <div className="container mx-auto px-4 mt-12">
             <div className="text-center mb-10">
               <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
-                <Star className="w-4 h-4 fill-amber-500" />
-                Max's Favorites
+                <Bone className="w-4 h-4" />
+                Pawfect Picks
               </div>
               <h2 className="font-heading text-3xl font-bold text-gray-900 mb-2">Featured Products</h2>
               <p className="text-gray-500">Hand-picked favorites that Max absolutely loves.</p>

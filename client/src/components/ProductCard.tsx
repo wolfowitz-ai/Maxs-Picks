@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PawPrint, ExternalLink, Star } from "lucide-react";
+import { PawPrint, ExternalLink, Bone } from "lucide-react";
 import type { Product } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -27,7 +27,7 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
         <div className="relative aspect-square overflow-hidden bg-gray-50">
           {featured && (
             <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium shadow-sm">
-              <Star className="w-2.5 h-2.5 md:w-3 md:h-3 fill-white" />
+              <Bone className="w-2.5 h-2.5 md:w-3 md:h-3" />
               <span className="hidden sm:inline">Featured</span>
             </div>
           )}
@@ -94,7 +94,7 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
                   className="absolute bottom-full left-0 right-0 mb-2 z-20"
                 >
                   <div className="bg-blue-50 rounded-lg md:rounded-xl p-2 md:p-4 border border-blue-200 shadow-lg">
-                    <p className="text-[10px] md:text-sm text-blue-900 italic leading-relaxed line-clamp-3 md:line-clamp-none">
+                    <p className="text-[10px] md:text-sm text-blue-900 italic leading-relaxed">
                       "<span className="font-semibold not-italic">Max:</span> {product.maxsTake}"
                     </p>
                   </div>

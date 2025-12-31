@@ -364,10 +364,20 @@ export function ImportModal() {
               </div>
 
               <div className="col-span-2 space-y-2">
-                <Label>Max's Take * (What does Max think about this?)</Label>
+                <div className="flex justify-between items-center">
+                  <Label>Max's Take * (What does Max think about this?)</Label>
+                  <span className={`text-xs ${stagedProduct.maxsTake.length > 250 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                    {stagedProduct.maxsTake.length}/250
+                  </span>
+                </div>
                 <Textarea
                   value={stagedProduct.maxsTake}
-                  onChange={(e) => updateStagedField("maxsTake", e.target.value)}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    if (newValue.length <= 250 || newValue.length < stagedProduct.maxsTake.length) {
+                      updateStagedField("maxsTake", newValue.slice(0, 250));
+                    }
+                  }}
                   placeholder="Write a fun review from Max's perspective..."
                   rows={2}
                   required
