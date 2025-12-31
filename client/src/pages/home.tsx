@@ -144,6 +144,11 @@ export default function Home() {
                 <Button variant="ghost" size="icon" onClick={() => setShowSearch(true)} data-testid="button-search">
                   <Search className="w-4 h-4" />
                 </Button>
+                <a href="/admin">
+                  <Button variant="ghost" size="icon" title="Admin">
+                    <Lock className="w-4 h-4" />
+                  </Button>
+                </a>
               </>
             )}
           </div>
@@ -166,6 +171,10 @@ export default function Home() {
                   <a href="/" className="text-lg font-medium">Home</a>
                   <a href="/products" className="text-lg font-medium">Categories</a>
                   <a href="/about" className="text-lg font-medium">About Max</a>
+                  <a href="/admin" className="text-lg font-medium flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Admin
+                  </a>
                 </div>
               </SheetContent>
             </Sheet>
