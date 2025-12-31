@@ -3,17 +3,14 @@ import { Link } from "wouter";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductFilter } from "@/components/ProductFilter";
-import { products } from "@/lib/data";
-import { PawPrint, Menu, Lock } from "lucide-react";
+import { useProducts } from "@/lib/api";
+import { PawPrint, Menu, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function Home() {
   const [category, setCategory] = useState("All");
-
-  const filteredProducts = category === "All" 
-    ? products 
-    : products.filter(p => p.category === category);
+  const { data: products, isLoading, error } = useProducts(category);
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans">
@@ -67,19 +64,35 @@ export default function Home() {
 
           <ProductFilter currentCategory={category} onSelectCategory={setCategory} />
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
-            ))}
-          </div>
-          
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-              <p className="text-gray-400 text-lg">No products found in this category yet!</p>
-              <Button variant="link" onClick={() => setCategory("All")} className="mt-2 text-primary">
-                View all products
-              </Button>
+          {isLoading && (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
+          )}
+
+          {error && (
+            <div className="text-center py-20 bg-white rounded-3xl border border-red-200">
+              <p className="text-red-500 text-lg">Failed to load products. Please try again.</p>
+            </div>
+          )}
+
+          {!isLoading && !error && products && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {products.map((product, index) => (
+                  <ProductCard key={product.id} product={product} index={index} />
+                ))}
+              </div>
+              
+              {products.length === 0 && (
+                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+                  <p className="text-gray-400 text-lg">No products found in this category yet!</p>
+                  <Button variant="link" onClick={() => setCategory("All")} className="mt-2 text-primary">
+                    View all products
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>

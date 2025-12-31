@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PawPrint, ExternalLink } from "lucide-react";
-import { Product } from "@/lib/data";
+import type { Product } from "@shared/schema";
 import { motion } from "framer-motion";
 
 interface ProductCardProps {
@@ -26,7 +26,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
             className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
           />
           <Badge className="absolute top-3 right-3 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-sm font-bold px-3 py-1">
-            ${product.price}
+            ${parseFloat(product.price).toFixed(2)}
           </Badge>
         </div>
 
@@ -37,7 +37,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
             </Badge>
             <div className="flex items-center gap-1 text-amber-400">
               <PawPrint className="w-4 h-4 fill-current" />
-              <span className="text-sm font-semibold text-gray-700">{product.rating}</span>
+              <span className="text-sm font-semibold text-gray-700">{parseFloat(product.rating).toFixed(1)}</span>
               <span className="text-xs text-gray-400">({product.reviews})</span>
             </div>
           </div>

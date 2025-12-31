@@ -1,22 +1,31 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { products, categories, Product } from "@/lib/data";
+import { useProducts, useDeleteProduct } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ScraperModal } from "@/components/ScraperModal";
-import { PawPrint, Plus, Pencil, Trash2, Save, Package, Settings, ExternalLink } from "lucide-react";
+import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("products");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { data: products, isLoading } = useProducts();
+  const deleteProduct = useDeleteProduct();
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans flex">
@@ -92,55 +101,105 @@ export default function Admin() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[80px]">Image</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Rating</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {products.map((product) => (
-                        <TableRow key={product.id}>
-                          <TableCell>
-                            <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-50 border border-gray-100">
-                              <img src={product.image} alt={product.title} className="w-full h-full object-cover" />
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">{product.title}</TableCell>
-                          <TableCell>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                              {product.category}
-                            </span>
-                          </TableCell>
-                          <TableCell>${product.price}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <PawPrint className="w-3 h-3 fill-amber-400 text-amber-400" />
-                              <span className="text-sm">{product.rating}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-primary">
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-red-500">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                  {isLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px]">Image</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Rating</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {products?.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell>
+                              <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-50 border border-gray-100">
+                                <img src={product.image} alt={product.title} className="w-full h-full object-cover" />
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">{product.title}</TableCell>
+                            <TableCell>
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                                {product.category}
+                              </span>
+                            </TableCell>
+                            <TableCell>${parseFloat(product.price).toFixed(2)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <PawPrint className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                <span className="text-sm">{parseFloat(product.rating).toFixed(1)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-primary">
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-gray-500 hover:text-red-500"
+                                  onClick={() => setDeleteId(product.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Product?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete this product from Max's recommendations.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-red-500 hover:bg-red-600"
+                    onClick={() => {
+                      if (deleteId) {
+                        deleteProduct.mutate(deleteId, {
+                          onSuccess: () => {
+                            toast({
+                              title: "Product deleted",
+                              description: "The product has been removed from your catalog.",
+                            });
+                            setDeleteId(null);
+                          },
+                          onError: () => {
+                            toast({
+                              title: "Error",
+                              description: "Failed to delete product. Please try again.",
+                              variant: "destructive",
+                            });
+                          },
+                        });
+                      }
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <TabsContent value="settings">
               <Card>
