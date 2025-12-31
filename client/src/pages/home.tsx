@@ -5,7 +5,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { ProductFilter } from "@/components/ProductFilter";
 import { Footer } from "@/components/Footer";
 import { useProducts, useFeaturedProducts } from "@/lib/api";
-import { PawPrint, Menu, Lock, Loader2, Bone, Search, X } from "lucide-react";
+import { PawPrint, Menu, Lock, Loader2, Bone, Search, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -234,6 +234,15 @@ export default function Home() {
                 <ProductCard key={product.id} product={product} index={index} featured />
               ))}
             </div>
+            
+            <div className="text-center mt-8">
+              <Link href="/products">
+                <Button variant="outline" className="rounded-full px-6 gap-2">
+                  View All Products
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
 
@@ -266,7 +275,7 @@ export default function Home() {
                 ))}
               </div>
               
-              {curatedProducts.length === 0 && (
+              {curatedProducts.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                   <p className="text-gray-400 text-lg">
                     {searchQuery ? "No products match your search." : "No products found in this category yet!"}
@@ -280,6 +289,15 @@ export default function Home() {
                       View all products
                     </Button>
                   )}
+                </div>
+              ) : (
+                <div className="text-center mt-8">
+                  <Link href="/products">
+                    <Button variant="outline" className="rounded-full px-6 gap-2">
+                      View All Products
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
                 </div>
               )}
             </>
