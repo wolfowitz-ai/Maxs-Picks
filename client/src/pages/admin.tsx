@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useProducts, useDeleteProduct, useCategories, useCreateCategory, useDeleteCategory, useUpdateProduct } from "@/lib/api";
+import { useProducts, useDeleteProduct, useCategories, useCreateCategory, useDeleteCategory, useUpdateProduct, useUpdateCategory } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { ImportModal } from "@/components/ImportModal";
 import { ProductFormModal } from "@/components/ProductFormModal";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home, Star, Menu, X } from "lucide-react";
+import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home, Star, Menu, X, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import type { Product } from "@shared/schema";
@@ -71,7 +71,10 @@ export default function Admin() {
   const deleteProduct = useDeleteProduct();
   const createCategory = useCreateCategory();
   const deleteCategory = useDeleteCategory();
+  const updateCategory = useUpdateCategory();
   const updateProduct = useUpdateProduct();
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -140,6 +143,41 @@ export default function Admin() {
     const newSettings = { ...layoutSettings, [key]: value };
     setLayoutSettings(newSettings);
     saveLayoutSettings(newSettings);
+  };
+
+  const handleStartEditCategory = (category: { id: string; name: string }) => {
+    setEditingCategoryId(category.id);
+    setEditingCategoryName(category.name);
+  };
+
+  const handleSaveCategory = () => {
+    if (!editingCategoryId || !editingCategoryName.trim()) return;
+    
+    updateCategory.mutate(
+      { id: editingCategoryId, data: { name: editingCategoryName.trim() } },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Category renamed",
+            description: `Category has been renamed to "${editingCategoryName.trim()}".`,
+          });
+          setEditingCategoryId(null);
+          setEditingCategoryName("");
+        },
+        onError: (error) => {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategoryId(null);
+    setEditingCategoryName("");
   };
 
   const NavContent = () => (
@@ -441,24 +479,85 @@ export default function Admin() {
                         <TableBody>
                           {categories.map((category) => {
                             const productCount = products?.filter(p => p.category === category.name).length || 0;
+                            const isEditing = editingCategoryId === category.id;
                             return (
                               <TableRow key={category.id} data-testid={`row-category-${category.id}`}>
-                                <TableCell className="font-medium">{category.name}</TableCell>
+                                <TableCell className="font-medium">
+                                  {isEditing ? (
+                                    <Input
+                                      value={editingCategoryName}
+                                      onChange={(e) => setEditingCategoryName(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleSaveCategory();
+                                        if (e.key === "Escape") handleCancelEditCategory();
+                                      }}
+                                      className="h-8 w-40"
+                                      autoFocus
+                                      data-testid={`input-rename-category-${category.id}`}
+                                    />
+                                  ) : (
+                                    category.name
+                                  )}
+                                </TableCell>
                                 <TableCell>
                                   <span className="text-gray-500">{productCount} products</span>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8 text-gray-500 hover:text-red-500"
-                                    onClick={() => setDeleteCategoryId(category.id)}
-                                    disabled={productCount > 0}
-                                    title={productCount > 0 ? "Cannot delete category with products" : "Delete category"}
-                                    data-testid={`button-delete-category-${category.id}`}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                                  <div className="flex items-center justify-end gap-1">
+                                    {isEditing ? (
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-green-600 hover:text-green-700"
+                                          onClick={handleSaveCategory}
+                                          disabled={updateCategory.isPending}
+                                          title="Save"
+                                          data-testid={`button-save-category-${category.id}`}
+                                        >
+                                          {updateCategory.isPending ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <Check className="w-4 h-4" />
+                                          )}
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                                          onClick={handleCancelEditCategory}
+                                          title="Cancel"
+                                          data-testid={`button-cancel-category-${category.id}`}
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-gray-500 hover:text-primary"
+                                          onClick={() => handleStartEditCategory(category)}
+                                          title="Rename category"
+                                          data-testid={`button-rename-category-${category.id}`}
+                                        >
+                                          <Pencil className="w-4 h-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-8 w-8 text-gray-500 hover:text-red-500"
+                                          onClick={() => setDeleteCategoryId(category.id)}
+                                          disabled={productCount > 0}
+                                          title={productCount > 0 ? "Cannot delete category with products" : "Delete category"}
+                                          data-testid={`button-delete-category-${category.id}`}
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             );
