@@ -31,7 +31,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Key Features
 - **Product Catalog**: CRUD operations for pet products with categories, ratings, reviews, and "Max's Take" personalized reviews
-- **Amazon Scraper**: Admin tool using Cheerio to extract product data from Amazon URLs/ASINs
+- **Dual Amazon Import System**:
+  - **PA-API Method**: Official Amazon Product Advertising API integration (requires Amazon Associates credentials)
+  - **Scraper Method**: Web scraping fallback using Cheerio with optional ScraperAPI proxy for reliability
+- **Import Staging**: Review and edit scraped product data before saving to catalog
+- **Category Management**: Full CRUD for product categories
 - **Category Filtering**: Products filterable by Toys, Treats, Gear, Grooming
 - **Admin Panel**: Protected dashboard at `/admin` for product management
 
@@ -46,7 +50,8 @@ client/           # React frontend (Vite)
 server/           # Express backend
   routes.ts       # API route definitions
   storage.ts      # Database operations via Drizzle
-  scraper.ts      # Amazon product scraper
+  scraper.ts      # Amazon web scraper with ScraperAPI fallback
+  amazon-api.ts   # Amazon PA-API integration
   auth.ts         # Admin authentication
 shared/           # Shared code between client/server
   schema.ts       # Drizzle database schema
@@ -63,12 +68,21 @@ shared/           # Shared code between client/server
 - Drizzle ORM with `drizzle-kit` for schema management
 
 ### Third-Party Services
-- **Amazon**: Product scraping target (no official API, uses web scraping with axios/cheerio)
+- **Amazon Product Advertising API**: Official API for product data (requires Amazon Associates account)
+- **ScraperAPI**: Optional proxy service for reliable web scraping when direct requests are blocked
 - **Google Fonts**: Fredoka and DM Sans font families
 
 ### Environment Variables
 - `DATABASE_URL`: PostgreSQL connection string (required)
 - `ADMIN_PASSWORD`: Admin panel password (optional, defaults to "max123" in development)
+
+#### Amazon PA-API Import (Optional)
+- `AMAZON_ACCESS_KEY`: Amazon PA-API access key from Associates Central
+- `AMAZON_SECRET_KEY`: Amazon PA-API secret key
+- `AMAZON_PARTNER_TAG`: Your Amazon Associates tracking ID (e.g., "maxtoppicks-20")
+
+#### Scraper Fallback (Optional)
+- `SCRAPER_API_KEY`: ScraperAPI key for reliable scraping when direct requests fail (free tier: 1000 requests/month at scraperapi.com)
 
 ### Key NPM Packages
 - `@tanstack/react-query`: Data fetching and caching

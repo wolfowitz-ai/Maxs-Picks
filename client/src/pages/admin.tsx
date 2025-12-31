@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { ScraperModal } from "@/components/ScraperModal";
+import { ImportModal } from "@/components/ImportModal";
 import { ProductFormModal } from "@/components/ProductFormModal";
 import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -169,10 +169,10 @@ export default function Admin() {
                   <p className="text-gray-500">Manage Max's curated list and affiliate links.</p>
                 </div>
                 <div className="flex gap-3">
-                  <ScraperModal />
+                  <ImportModal />
                   <Button className="gap-2" onClick={handleAddProduct} data-testid="button-add-product">
                     <Plus className="w-4 h-4" />
-                    Add Product
+                    Add Manually
                   </Button>
                 </div>
               </div>

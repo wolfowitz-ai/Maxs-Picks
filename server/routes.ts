@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { insertProductSchema, insertCategorySchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
 import { checkAdminAuth, verifyAdminPassword } from "./auth";
-import { scrapeAmazonProduct } from "./scraper";
+import { scrapeAmazonProduct, extractASINFromUrl } from "./scraper";
+import { fetchFromPAAPI, extractASIN } from "./amazon-api";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -34,7 +35,42 @@ export async function registerRoutes(
     }
   });
 
-  // Amazon scraper route (admin only)
+  // Amazon PA-API import (official API)
+  app.post("/api/admin/import/pa-api", checkAdminAuth, async (req, res) => {
+    try {
+      const { url, imageCount = 1 } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL or ASIN is required" });
+      }
+
+      const asin = extractASIN(url);
+      const productData = await fetchFromPAAPI(asin, imageCount);
+      res.json(productData);
+    } catch (error) {
+      console.error("Error fetching from PA-API:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch from Amazon PA-API" });
+    }
+  });
+
+  // Amazon scraper import (fallback method)
+  app.post("/api/admin/import/scrape", checkAdminAuth, async (req, res) => {
+    try {
+      const { url, imageCount = 1 } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL or ASIN is required" });
+      }
+
+      const scrapedData = await scrapeAmazonProduct(url, imageCount);
+      res.json(scrapedData);
+    } catch (error) {
+      console.error("Error scraping Amazon:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to scrape product" });
+    }
+  });
+
+  // Legacy scrape endpoint (for backward compatibility)
   app.post("/api/admin/scrape", checkAdminAuth, async (req, res) => {
     try {
       const { url } = req.body;
@@ -43,7 +79,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "URL or ASIN is required" });
       }
 
-      const scrapedData = await scrapeAmazonProduct(url);
+      const scrapedData = await scrapeAmazonProduct(url, 1);
       res.json(scrapedData);
     } catch (error) {
       console.error("Error scraping Amazon:", error);
