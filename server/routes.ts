@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProductSchema, insertCategorySchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
-import { checkAdminAuth, verifyAdminPassword } from "./auth";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { scrapeAmazonProduct, extractASINFromUrl } from "./scraper";
 import { fetchFromPAAPI, extractASIN, getAvailableMarketplaces } from "./amazon-api";
 import axios from "axios";
@@ -15,36 +15,16 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // Admin login route
-  app.post("/api/admin/login", async (req, res) => {
-    try {
-      const { password } = req.body;
-      
-      if (!password) {
-        return res.status(400).json({ error: "Password is required" });
-      }
-
-      const isValid = verifyAdminPassword(password);
-      
-      if (!isValid) {
-        return res.status(401).json({ error: "Invalid password" });
-      }
-
-      // Return the password as the token (simple auth)
-      res.json({ token: password });
-    } catch (error) {
-      console.error("Error during admin login:", error);
-      res.status(500).json({ error: "Failed to authenticate" });
-    }
-  });
+  await setupAuth(app);
+  registerAuthRoutes(app);
 
   // Get available marketplaces for PA-API
-  app.get("/api/admin/marketplaces", checkAdminAuth, (req, res) => {
+  app.get("/api/admin/marketplaces", isAuthenticated, (req, res) => {
     res.json(getAvailableMarketplaces());
   });
 
   // Amazon PA-API import (official API)
-  app.post("/api/admin/import/pa-api", checkAdminAuth, async (req, res) => {
+  app.post("/api/admin/import/pa-api", isAuthenticated, async (req, res) => {
     try {
       const { url, imageCount = 1, marketplace = "US" } = req.body;
       
@@ -62,7 +42,7 @@ export async function registerRoutes(
   });
 
   // Amazon scraper import (fallback method)
-  app.post("/api/admin/import/scrape", checkAdminAuth, async (req, res) => {
+  app.post("/api/admin/import/scrape", isAuthenticated, async (req, res) => {
     try {
       const { url, imageCount = 1 } = req.body;
       
@@ -79,7 +59,7 @@ export async function registerRoutes(
   });
 
   // Legacy scrape endpoint (for backward compatibility)
-  app.post("/api/admin/scrape", checkAdminAuth, async (req, res) => {
+  app.post("/api/admin/scrape", isAuthenticated, async (req, res) => {
     try {
       const { url } = req.body;
       
@@ -96,7 +76,7 @@ export async function registerRoutes(
   });
 
   // Download and save image locally
-  app.post("/api/admin/save-image", checkAdminAuth, async (req, res) => {
+  app.post("/api/admin/save-image", isAuthenticated, async (req, res) => {
     try {
       const { imageUrl, filename } = req.body;
       
@@ -168,7 +148,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/products", checkAdminAuth, async (req, res) => {
+  app.post("/api/products", isAuthenticated, async (req, res) => {
     try {
       const validationResult = insertProductSchema.safeParse(req.body);
       
@@ -185,7 +165,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/products/:id", checkAdminAuth, async (req, res) => {
+  app.patch("/api/products/:id", isAuthenticated, async (req, res) => {
     try {
       const partialSchema = insertProductSchema.partial();
       const validationResult = partialSchema.safeParse(req.body);
@@ -206,7 +186,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/products/:id", checkAdminAuth, async (req, res) => {
+  app.delete("/api/products/:id", isAuthenticated, async (req, res) => {
     try {
       const deleted = await storage.deleteProduct(req.params.id);
       if (!deleted) {
@@ -230,7 +210,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/categories", checkAdminAuth, async (req, res) => {
+  app.post("/api/categories", isAuthenticated, async (req, res) => {
     try {
       const validationResult = insertCategorySchema.safeParse(req.body);
       
@@ -247,7 +227,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/categories/:id", checkAdminAuth, async (req, res) => {
+  app.patch("/api/categories/:id", isAuthenticated, async (req, res) => {
     try {
       const partialSchema = insertCategorySchema.partial();
       const validationResult = partialSchema.safeParse(req.body);
@@ -268,7 +248,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/categories/:id", checkAdminAuth, async (req, res) => {
+  app.delete("/api/categories/:id", isAuthenticated, async (req, res) => {
     try {
       const deleted = await storage.deleteCategory(req.params.id);
       if (!deleted) {

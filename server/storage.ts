@@ -3,23 +3,15 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pkg from "pg";
 const { Pool } = pkg;
 import {
-  type User,
-  type InsertUser,
   type Product,
   type InsertProduct,
   type Category,
   type InsertCategory,
-  users,
   products,
   categories,
 } from "@shared/schema";
 
 export interface IStorage {
-  // User methods
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  
   // Product methods
   getAllProducts(): Promise<Product[]>;
   getProductById(id: string): Promise<Product | undefined>;
@@ -40,28 +32,9 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const db = drizzle(pool);
+export const db = drizzle(pool);
 
 export class DatabaseStorage implements IStorage {
-  // User methods
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
-  }
-
   // Product methods
   async getAllProducts(): Promise<Product[]> {
     return await db.select().from(products);

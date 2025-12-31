@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home, Star, Menu, X, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
 import type { Product } from "@shared/schema";
 import {
   AlertDialog,
@@ -66,7 +66,7 @@ export default function Admin() {
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(getSiteSettings);
   
   const { toast } = useToast();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -79,18 +79,21 @@ export default function Admin() {
   const [editingCategoryName, setEditingCategoryName] = useState("");
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setLocation("/admin/login");
+    if (!authLoading && !isAuthenticated) {
+      window.location.href = "/api/login";
     }
-  }, [isAuthenticated, setLocation]);
+  }, [isAuthenticated, authLoading]);
 
-  if (!isAuthenticated) {
-    return null;
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   const handleLogout = () => {
     logout();
-    setLocation("/admin/login");
   };
 
   const handleAddProduct = () => {
