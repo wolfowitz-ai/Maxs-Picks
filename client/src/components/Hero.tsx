@@ -18,7 +18,7 @@ export function Hero() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <span className="inline-block py-1 px-3 rounded-full bg-secondary/20 text-secondary-foreground text-sm font-bold mb-4 border border-secondary/20">
+              <span className="inline-block py-1.5 px-4 rounded-full bg-secondary text-white text-sm font-bold mb-4 shadow-sm">
                 🐾 Approved by Max
               </span>
               <h1 className="text-4xl lg:text-6xl font-heading font-bold text-gray-900 leading-tight">
