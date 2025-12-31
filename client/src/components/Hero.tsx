@@ -41,12 +41,17 @@ export function Hero() {
               transition={{ delay: 0.4, duration: 0.5 }}
               className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
             >
-              <Button size="lg" className="rounded-full h-14 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-blue-200">
-                Browse My Picks
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-lg border-2 hover:bg-gray-50">
-                Read My Story
-              </Button>
+              <a href="#featured-products">
+                <Button size="lg" className="rounded-full h-14 px-8 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-blue-200">
+                  Browse My Picks
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </a>
+              <a href="/about">
+                <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-lg border-2 hover:bg-gray-50">
+                  Read My Story
+                </Button>
+              </a>
             </motion.div>
           </div>
 

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductFilter } from "@/components/ProductFilter";
+import { Footer } from "@/components/Footer";
 import { useProducts, useFeaturedProducts } from "@/lib/api";
 import { PawPrint, Menu, Lock, Loader2, Bone, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -218,7 +219,7 @@ export default function Home() {
         
         {/* Featured Products Section */}
         {featuredProducts.length > 0 && (
-          <div className="container mx-auto px-4 mt-12">
+          <div id="featured-products" className="container mx-auto px-4 mt-12 scroll-mt-20">
             <div className="text-center mb-10">
               <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
                 <Bone className="w-4 h-4" />
@@ -286,23 +287,7 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="bg-white border-t border-gray-100 py-12 mt-12">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex justify-center items-center gap-2 mb-6 opacity-50">
-            <PawPrint className="w-6 h-6" />
-          </div>
-          <p className="text-gray-400 text-sm mb-4">
-            © 2024 Max's Top Picks. All rights reserved.<br/>
-            Prices and availability subject to change. As an Amazon Associate I earn from qualifying purchases.
-          </p>
-          <Link href="/admin">
-            <Button variant="link" size="sm" className="text-xs text-gray-300 hover:text-gray-500 gap-1">
-              <Lock className="w-3 h-3" />
-              Admin Access
-            </Button>
-          </Link>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
