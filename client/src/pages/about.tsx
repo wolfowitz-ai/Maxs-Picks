@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { PawPrint, Heart, Bone, ArrowLeft, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
-import { maxHero } from "@/lib/data";
+import { maxPortrait } from "@/lib/data";
 
 export default function About() {
   return (
@@ -46,7 +46,7 @@ export default function About() {
                   className="w-48 h-48 md:w-64 md:h-64 rounded-full border-8 border-white shadow-2xl overflow-hidden"
                 >
                   <img
-                    src={maxHero}
+                    src={maxPortrait}
                     alt="Max the Maltipoo"
                     className="w-full h-full object-cover"
                   />

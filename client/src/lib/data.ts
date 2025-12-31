@@ -1,4 +1,5 @@
-import maxHero from "@assets/generated_images/happy_maltipoo_dog_named_max_wearing_a_blue_bandana.png";
+import maxHero from "@assets/generated_images/happy_gray-white_maltipoo_blue_eyes.png";
+import maxPortrait from "@assets/generated_images/max_portrait_blue_eyes_close-up.png";
 import ballToy from "@assets/generated_images/blue_rubber_dog_ball_toy.png";
 import treats from "@assets/generated_images/gourmet_dog_treats_bag.png";
 import dogBed from "@assets/generated_images/cozy_plush_dog_bed.png";
@@ -57,4 +58,4 @@ export const products: Product[] = [
   },
 ];
 
-export { maxHero };
+export { maxHero, maxPortrait };
