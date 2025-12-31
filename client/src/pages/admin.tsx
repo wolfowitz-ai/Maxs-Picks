@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useProducts, useDeleteProduct } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ScraperModal } from "@/components/ScraperModal";
-import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2 } from "lucide-react";
+import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,8 +26,25 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("products");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isAuthenticated, logout } = useAuth();
+  const [, setLocation] = useLocation();
   const { data: products, isLoading } = useProducts();
   const deleteProduct = useDeleteProduct();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLocation("/admin/login");
+    }
+  }, [isAuthenticated, setLocation]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  const handleLogout = () => {
+    logout();
+    setLocation("/admin/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans flex">
@@ -60,14 +79,19 @@ export default function Admin() {
         </nav>
 
         <div className="p-4 border-t border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-              M
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                M
+              </div>
+              <div className="text-sm">
+                <p className="font-medium text-gray-900">Max</p>
+                <p className="text-xs text-gray-500">Chief Tasting Officer</p>
+              </div>
             </div>
-            <div className="text-sm">
-              <p className="font-medium text-gray-900">Max</p>
-              <p className="text-xs text-gray-500">Chief Tasting Officer</p>
-            </div>
+            <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+              <LogOut className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </aside>

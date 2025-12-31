@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
 
+// Helper to get auth headers
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem("adminToken");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // Fetch all products or filter by category
 export function useProducts(category?: string) {
   return useQuery({
@@ -42,7 +48,10 @@ export function useCreateProduct() {
     mutationFn: async (product: Omit<Product, "id">) => {
       const response = await fetch("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify(product),
       });
       
@@ -67,7 +76,10 @@ export function useUpdateProduct() {
     mutationFn: async ({ id, data }: { id: string; data: Partial<Omit<Product, "id">> }) => {
       const response = await fetch(`/api/products/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify(data),
       });
       
@@ -92,6 +104,7 @@ export function useDeleteProduct() {
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/products/${id}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -101,6 +114,29 @@ export function useDeleteProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
+// Scrape Amazon product
+export function useScrapeProduct() {
+  return useMutation({
+    mutationFn: async (url: string) => {
+      const response = await fetch("/api/admin/scrape", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ url }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to scrape product");
+      }
+      
+      return response.json();
     },
   });
 }

@@ -5,30 +5,37 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, CheckCircle2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useScrapeProduct } from "@/lib/api";
+import { Loader2, Download } from "lucide-react";
 
 export function ScraperModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [url, setUrl] = useState("");
   const { toast } = useToast();
+  const scrapeProduct = useScrapeProduct();
 
   const handleScrape = () => {
     if (!url) return;
     
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsOpen(false);
-      setUrl("");
-      toast({
-        title: "Product Imported Successfully!",
-        description: "Max has analyzed the product data. It's ready for review.",
-        className: "bg-green-50 border-green-200 text-green-900",
-      });
-    }, 2000);
+    scrapeProduct.mutate(url, {
+      onSuccess: (data) => {
+        setIsOpen(false);
+        setUrl("");
+        toast({
+          title: "Product Imported Successfully!",
+          description: `Max has analyzed "${data.title || 'the product'}". Review and customize it before publishing.`,
+          className: "bg-green-50 border-green-200 text-green-900",
+        });
+        console.log("Scraped product data:", data);
+      },
+      onError: (error) => {
+        toast({
+          title: "Import Failed",
+          description: error instanceof Error ? error.message : "Failed to scrape product",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   return (
@@ -80,10 +87,10 @@ export function ScraperModal() {
           </Button>
           <Button 
             onClick={handleScrape} 
-            disabled={!url || isLoading}
+            disabled={!url || scrapeProduct.isPending}
             className="rounded-xl bg-primary hover:bg-blue-600 text-white min-w-[120px]"
           >
-            {isLoading ? (
+            {scrapeProduct.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Fetching...
