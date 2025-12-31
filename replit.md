@@ -31,13 +31,15 @@ Preferred communication style: Simple, everyday language.
 
 ### Key Features
 - **Product Catalog**: CRUD operations for pet products with categories, ratings, reviews, and "Max's Take" personalized reviews
+- **Featured Products**: Mark products as featured with a star toggle; featured products display in a dedicated section above the main catalog
+- **Layout Settings**: Configurable grid layout with sliders to control items per row (2-6) and total items for both Featured and Curated sections (stored in localStorage)
 - **Dual Amazon Import System**:
   - **PA-API Method**: Official Amazon Product Advertising API integration (requires Amazon Associates credentials)
   - **Scraper Method**: Web scraping fallback using Cheerio with optional ScraperAPI proxy for reliability
 - **Import Staging**: Review and edit scraped product data before saving to catalog
 - **Category Management**: Full CRUD for product categories
 - **Category Filtering**: Products filterable by Toys, Treats, Gear, Grooming
-- **Admin Panel**: Protected dashboard at `/admin` for product management
+- **Admin Panel**: Protected dashboard at `/admin` for product management with mobile-responsive design
 
 ### Project Structure
 ```
