@@ -160,19 +160,27 @@ export default function ProductDetail() {
                 {product.title}
               </h1>
 
-              {hasPrice && (
-                <div className="mb-6">
+              <div className="flex items-center gap-4 mb-6 flex-wrap">
+                {hasPrice && (
                   <span className="text-3xl md:text-4xl font-bold text-primary" data-testid="text-product-price">
                     ${parseFloat(product.price!).toFixed(2)}
                   </span>
-                </div>
-              )}
+                )}
+                <Button
+                  className="bg-gradient-to-r from-primary to-blue-400 hover:to-blue-500 text-white font-bold shadow-lg hover:shadow-blue-200 transition-all h-12 px-6 rounded-xl text-base group"
+                  onClick={() => window.open(product.amazonUrl, '_blank')}
+                  data-testid="button-buy-amazon"
+                >
+                  Buy on Amazon
+                  <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </div>
 
               <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-6" data-testid="text-product-description">
                 {product.description}
               </p>
 
-              <div className="bg-blue-50 rounded-xl p-5 mb-8 border border-blue-100">
+              <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="bg-primary text-white p-1.5 rounded-full">
                     <PawPrint className="w-4 h-4" />
@@ -182,18 +190,6 @@ export default function ProductDetail() {
                 <p className="text-blue-800 italic leading-relaxed" data-testid="text-maxs-take">
                   "{product.maxsTake}"
                 </p>
-              </div>
-
-              <div className="mt-auto">
-                <Button
-                  className="w-full bg-gradient-to-r from-primary to-blue-400 hover:to-blue-500 text-white font-bold shadow-lg hover:shadow-blue-200 transition-all h-14 rounded-xl text-lg group"
-                  onClick={() => window.open(product.amazonUrl, '_blank')}
-                  data-testid="button-buy-amazon"
-                >
-                  Buy on Amazon
-                  <ExternalLink className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-
               </div>
             </div>
           </div>
