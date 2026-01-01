@@ -27,6 +27,7 @@ export const products = pgTable("products", {
   rating: decimal("rating", { precision: 3, scale: 2 }).notNull(),
   reviews: integer("reviews").notNull().default(0),
   image: text("image").notNull(),
+  images: text("images").array().default([]),
   category: text("category").notNull(),
   amazonUrl: text("amazon_url").notNull(),
   asin: text("asin"),
