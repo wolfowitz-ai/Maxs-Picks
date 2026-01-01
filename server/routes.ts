@@ -6,9 +6,22 @@ import { fromError } from "zod-validation-error";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { scrapeAmazonProduct, extractASINFromUrl } from "./scraper";
 import { fetchFromPAAPI, extractASIN, getAvailableMarketplaces } from "./amazon-api";
+import { spinText } from "./ai-spinner";
 import axios from "axios";
 import fs from "fs";
 import path from "path";
+import { z } from "zod";
+
+const spinRequestSchema = z.object({
+  field: z.enum(["title", "description", "maxsTake"]),
+  existingText: z.string().optional(),
+  productContext: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    category: z.string().optional(),
+    price: z.string().optional(),
+  }),
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -117,6 +130,24 @@ export async function registerRoutes(
     }
   });
   
+  // AI Text Spinner endpoint
+  app.post("/api/admin/spin-text", isAuthenticated, async (req, res) => {
+    try {
+      const validationResult = spinRequestSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        const validationError = fromError(validationResult.error);
+        return res.status(400).json({ error: validationError.toString() });
+      }
+
+      const spunText = await spinText(validationResult.data);
+      res.json({ text: spunText });
+    } catch (error) {
+      console.error("Error spinning text:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to generate text" });
+    }
+  });
+
   // Product routes
   app.get("/api/products", async (req, res) => {
     try {

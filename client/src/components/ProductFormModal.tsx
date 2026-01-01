@@ -7,9 +7,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories, useCreateProduct, useUpdateProduct } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star } from "lucide-react";
+import { Loader2, Star, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useMutation } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
+
+type FieldType = "title" | "description" | "maxsTake";
+
+interface SpinRequest {
+  field: FieldType;
+  existingText?: string;
+  productContext: {
+    title?: string;
+    description?: string;
+    category?: string;
+    price?: string;
+  };
+}
+
+async function spinTextApi(request: SpinRequest): Promise<string> {
+  const response = await fetch("/api/admin/spin-text", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(request),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to generate text");
+  }
+  
+  const data = await response.json();
+  return data.text;
+}
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -121,6 +152,61 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
 
   const isPending = createProduct.isPending || updateProduct.isPending;
 
+  const [spinningField, setSpinningField] = useState<FieldType | null>(null);
+
+  const spinMutation = useMutation({
+    mutationFn: spinTextApi,
+    onSuccess: (text, variables) => {
+      setFormData(prev => ({ ...prev, [variables.field]: text }));
+      toast({
+        title: "Text generated!",
+        description: `${variables.field === "maxsTake" ? "Max's Take" : variables.field === "title" ? "Title" : "Description"} has been updated.`,
+      });
+      setSpinningField(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Generation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setSpinningField(null);
+    },
+  });
+
+  const handleSpin = (field: FieldType) => {
+    setSpinningField(field);
+    spinMutation.mutate({
+      field,
+      existingText: formData[field] || undefined,
+      productContext: {
+        title: formData.title || undefined,
+        description: formData.description || undefined,
+        category: formData.category || undefined,
+        price: formData.price || undefined,
+      },
+    });
+  };
+
+  const SpinButton = ({ field, disabled }: { field: FieldType; disabled?: boolean }) => (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={() => handleSpin(field)}
+      disabled={disabled || spinningField !== null}
+      className="h-7 px-2 text-primary hover:text-primary/80 hover:bg-primary/10"
+      data-testid={`button-spin-${field}`}
+    >
+      {spinningField === field ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Sparkles className="h-4 w-4" />
+      )}
+      <span className="ml-1 text-xs">{formData[field] ? "Rewrite" : "Generate"}</span>
+    </Button>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -133,18 +219,25 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-2">
-              <Label htmlFor="title">Product Title *</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="title">Product Title *</Label>
+                <SpinButton field="title" />
+              </div>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g., Indestructible Blue Ball"
                 required
+                disabled={spinningField === "title"}
               />
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label htmlFor="description">Description *</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="description">Description *</Label>
+                <SpinButton field="description" />
+              </div>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -152,12 +245,16 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
                 placeholder="Describe the product..."
                 rows={2}
                 required
+                disabled={spinningField === "description"}
               />
             </div>
 
             <div className="col-span-2 space-y-2">
               <div className="flex justify-between items-center">
-                <Label htmlFor="maxsTake">Max's Take *</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="maxsTake">Max's Take *</Label>
+                  <SpinButton field="maxsTake" />
+                </div>
                 <span className={`text-xs ${formData.maxsTake.length > 250 ? "text-red-500 font-medium" : "text-gray-400"}`}>
                   {formData.maxsTake.length}/250
                 </span>
@@ -174,6 +271,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
                 placeholder="What does Max think about this product?"
                 rows={2}
                 required
+                disabled={spinningField === "maxsTake"}
               />
             </div>
 
