@@ -210,19 +210,44 @@ export function ImportModal() {
     setIsSavingImage(true);
 
     try {
-      let finalImageUrl = stagedProduct.images[selectedImageIndex] || stagedProduct.image;
+      const imagesToProcess = stagedProduct.images.slice(0, 3);
+      const processedImages: string[] = [];
+      let primaryImage = "";
 
-      if (saveImageLocally && finalImageUrl && finalImageUrl.startsWith("http")) {
-        try {
-          finalImageUrl = await saveImageToLocal(finalImageUrl, stagedProduct.title);
-        } catch (imgError) {
-          console.error("Failed to save image locally, using remote URL:", imgError);
-          toast({
-            title: "Image save warning",
-            description: "Could not save image locally, using remote URL instead.",
-            variant: "default",
-          });
+      for (let i = 0; i < imagesToProcess.length; i++) {
+        let imageUrl = imagesToProcess[i];
+        
+        if (saveImageLocally && imageUrl && imageUrl.startsWith("http")) {
+          try {
+            imageUrl = await saveImageToLocal(imageUrl, `${stagedProduct.title}_${i + 1}`);
+          } catch (imgError) {
+            console.error(`Failed to save image ${i + 1} locally:`, imgError);
+          }
         }
+        
+        if (i === selectedImageIndex) {
+          primaryImage = imageUrl;
+        } else {
+          processedImages.push(imageUrl);
+        }
+      }
+
+      if (!primaryImage && processedImages.length > 0) {
+        primaryImage = processedImages.shift()!;
+      }
+
+      if (!primaryImage) {
+        primaryImage = stagedProduct.image || "";
+      }
+
+      if (!primaryImage) {
+        toast({
+          title: "Image required",
+          description: "Please ensure at least one image is selected.",
+          variant: "destructive",
+        });
+        setIsSavingImage(false);
+        return;
       }
 
       const productToSave = {
@@ -232,7 +257,8 @@ export function ImportModal() {
         price: stagedProduct.price || null,
         rating: stagedProduct.rating,
         reviews: stagedProduct.reviews,
-        image: finalImageUrl,
+        image: primaryImage,
+        images: processedImages,
         category: stagedProduct.category,
         amazonUrl: stagedProduct.amazonUrl,
         asin: stagedProduct.asin,

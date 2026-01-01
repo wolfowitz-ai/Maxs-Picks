@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { PawPrint, ExternalLink, Bone } from "lucide-react";
 import type { Product } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
+import { ImageCarousel } from "./ImageCarousel";
 
 interface ProductCardProps {
   product: Product;
@@ -16,6 +17,11 @@ interface ProductCardProps {
 export function ProductCard({ product, index, featured = false }: ProductCardProps) {
   const [showMaxsTake, setShowMaxsTake] = useState(false);
   const hasPrice = product.price && parseFloat(product.price) > 0;
+  
+  const allImages = [
+    product.image,
+    ...(product.images || [])
+  ].filter(Boolean) as string[];
 
   return (
     <motion.div
@@ -25,27 +31,29 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
     >
       <Card className={`group overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white h-full flex flex-col ${featured ? "border-2 border-amber-300 ring-2 ring-amber-100" : "border-none"}`}>
         {/* Image Container */}
-        <Link href={`/product/${product.id}`} className="block">
-          <div className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer">
-            {featured && (
-              <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium shadow-sm">
-                <Bone className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                <span className="hidden sm:inline">Featured</span>
-              </div>
-            )}
-            <img
-              src={product.image}
+        <div className="relative overflow-hidden bg-gray-50">
+          {featured && (
+            <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium shadow-sm">
+              <Bone className="w-2.5 h-2.5 md:w-3 md:h-3" />
+              <span className="hidden sm:inline">Featured</span>
+            </div>
+          )}
+          {hasPrice && (
+            <Badge className="absolute top-2 right-2 md:top-3 md:right-3 z-10 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-xs md:text-sm font-bold px-2 py-0.5 md:px-3 md:py-1">
+              ${parseFloat(product.price!).toFixed(2)}
+            </Badge>
+          )}
+          <Link href={`/product/${product.id}`} className="block">
+            <ImageCarousel 
+              images={allImages} 
               alt={product.title}
-              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-              data-testid={`img-product-${product.id}`}
+              aspectRatio="square"
+              showDots={allImages.length > 1}
+              showArrows={false}
+              className="cursor-pointer transition-transform duration-500 group-hover:scale-105"
             />
-            {hasPrice && (
-              <Badge className="absolute top-2 right-2 md:top-3 md:right-3 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-xs md:text-sm font-bold px-2 py-0.5 md:px-3 md:py-1">
-                ${parseFloat(product.price!).toFixed(2)}
-              </Badge>
-            )}
-          </div>
-        </Link>
+          </Link>
+        </div>
 
         <CardHeader className="p-3 md:p-5 pb-1 md:pb-2">
           <div className="flex justify-between items-center mb-1 md:mb-2">

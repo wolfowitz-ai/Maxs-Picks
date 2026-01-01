@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { PawPrint, ExternalLink, ArrowLeft, Loader2, Menu, Lock, Bone, Home } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
+import { ImageCarousel } from "@/components/ImageCarousel";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -64,6 +65,11 @@ export default function ProductDetail() {
   }
 
   const hasPrice = product.price && parseFloat(product.price) > 0;
+  
+  const allImages = [
+    product.image,
+    ...(product.images || [])
+  ].filter(Boolean) as string[];
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans">
@@ -129,18 +135,20 @@ export default function ProductDetail() {
           className="bg-white rounded-2xl md:rounded-3xl shadow-lg overflow-hidden"
         >
           <div className="grid md:grid-cols-2 gap-0">
-            <div className="relative aspect-[4/3] md:aspect-auto bg-gray-50">
+            <div className="relative bg-gray-50">
               {product.featured && (
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-md">
                   <Bone className="w-4 h-4" />
                   Featured
                 </div>
               )}
-              <img
-                src={product.image}
+              <ImageCarousel
+                images={allImages}
                 alt={product.title}
-                className="w-full h-full object-cover"
-                data-testid="img-product"
+                aspectRatio="4/3"
+                showDots={allImages.length > 1}
+                showArrows={allImages.length > 1}
+                className="md:min-h-[400px]"
               />
             </div>
 

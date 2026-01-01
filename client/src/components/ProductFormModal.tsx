@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories, useCreateProduct, useUpdateProduct } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star, Sparkles } from "lucide-react";
+import { Loader2, Star, Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useMutation } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
@@ -61,11 +61,16 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
     rating: "",
     reviews: 0,
     image: "",
+    images: [] as string[],
     category: "",
     amazonUrl: "",
     asin: "",
     featured: false,
   });
+  
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -77,6 +82,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         rating: product.rating,
         reviews: product.reviews,
         image: product.image,
+        images: product.images || [],
         category: product.category,
         amazonUrl: product.amazonUrl,
         asin: product.asin || "",
@@ -91,6 +97,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         rating: "4.5",
         reviews: 0,
         image: "",
+        images: [],
         category: categories?.[0]?.name || "Toys",
         amazonUrl: "",
         asin: "",
@@ -101,6 +108,15 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.image) {
+      toast({
+        title: "Image required",
+        description: "Please add at least one product image.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const productData = {
       ...formData,
@@ -232,6 +248,94 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
       )}
     </div>
   );
+
+  const addImageToForm = useCallback((imagePath: string) => {
+    if (!formData.image) {
+      setFormData(prev => ({ ...prev, image: imagePath }));
+    } else if (formData.images.length < 2) {
+      setFormData(prev => ({ ...prev, images: [...prev.images, imagePath] }));
+    } else {
+      toast({
+        title: "Maximum images reached",
+        description: "You can only add up to 3 images per product.",
+        variant: "destructive",
+      });
+    }
+  }, [formData.image, formData.images, toast]);
+
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const response = await fetch("/api/admin/upload-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/octet-stream" },
+        credentials: "include",
+        body: arrayBuffer,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Upload failed");
+      }
+
+      const data = await response.json();
+      addImageToForm(data.localPath);
+      toast({
+        title: "Image uploaded",
+        description: "Image has been processed and added.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [addImageToForm, toast]);
+
+  const handleImageUrl = useCallback(async (url: string) => {
+    setIsUploading(true);
+    try {
+      const response = await fetch("/api/admin/save-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ imageUrl: url, filename: formData.title || "product" }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save image");
+      }
+
+      const data = await response.json();
+      addImageToForm(data.localPath);
+      toast({
+        title: "Image saved",
+        description: "Image has been downloaded and processed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to save image",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [addImageToForm, formData.title, toast]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -365,14 +469,143 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label htmlFor="image">Image URL *</Label>
-              <Input
-                id="image"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                required
-              />
+              <Label>Product Images (up to 3) *</Label>
+              <div className="space-y-3">
+                {/* Image gallery */}
+                {(formData.image || formData.images.length > 0) && (
+                  <div className="flex gap-2 flex-wrap">
+                    {formData.image && (
+                      <div className="relative group">
+                        <img 
+                          src={formData.image} 
+                          alt="Primary" 
+                          className="w-20 h-20 object-cover rounded-lg border-2 border-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (formData.images.length > 0) {
+                              const [newPrimary, ...rest] = formData.images;
+                              setFormData({ ...formData, image: newPrimary, images: rest });
+                            } else {
+                              setFormData({ ...formData, image: "" });
+                            }
+                          }}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          data-testid="button-remove-primary-image"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 bg-primary text-white text-[10px] px-1 rounded">1</span>
+                      </div>
+                    )}
+                    {formData.images.map((img, idx) => (
+                      <div key={idx} className="relative group">
+                        <img 
+                          src={img} 
+                          alt={`Image ${idx + 2}`} 
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newImages = formData.images.filter((_, i) => i !== idx);
+                            setFormData({ ...formData, images: newImages });
+                          }}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          data-testid={`button-remove-image-${idx}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 bg-gray-600 text-white text-[10px] px-1 rounded">{idx + 2}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload area */}
+                {(formData.image ? formData.images.length : 0) < 2 && (
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.type.startsWith("image/")) {
+                        await handleImageUpload(file);
+                      }
+                    }}
+                    className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
+                      isDragging ? "border-primary bg-primary/5" : "border-gray-300 hover:border-primary/50"
+                    }`}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleImageUpload(file);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                    {isUploading ? (
+                      <div className="flex items-center justify-center gap-2 text-primary">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Uploading...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-gray-500">
+                        <Upload className="w-8 h-8" />
+                        <span className="text-sm">Drop image here or click to upload</span>
+                        <span className="text-xs text-gray-400">JPG, PNG, WebP (max 10MB)</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* URL input fallback */}
+                <div className="flex gap-2">
+                  <Input
+                    id="imageUrl"
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Or paste image URL..."
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const input = e.target as HTMLInputElement;
+                        const url = input.value.trim();
+                        if (url) {
+                          await handleImageUrl(url);
+                          input.value = "";
+                        }
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const input = document.getElementById("imageUrl") as HTMLInputElement;
+                      const url = input?.value?.trim();
+                      if (url) {
+                        await handleImageUrl(url);
+                        input.value = "";
+                      }
+                    }}
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="col-span-2 space-y-2">

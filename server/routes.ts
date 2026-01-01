@@ -169,6 +169,67 @@ export async function registerRoutes(
       res.status(500).json({ error: error instanceof Error ? error.message : "Failed to save image" });
     }
   });
+
+  // File upload endpoint for direct image uploads
+  app.post("/api/admin/upload-image", isAuthenticated, async (req, res) => {
+    try {
+      const chunks: Buffer[] = [];
+      
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      
+      const imageBuffer = Buffer.concat(chunks);
+      
+      if (imageBuffer.length === 0) {
+        return res.status(400).json({ error: "No image data received" });
+      }
+
+      const timestamp = Date.now();
+      const sanitizedFilename = `upload_${timestamp}`;
+      const uploadDir = path.join(process.cwd(), "attached_assets", "product_images");
+      
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      // Process main image: resize to 1200x900 (4:3 ratio), convert to WebP
+      const mainFilename = `${sanitizedFilename}.webp`;
+      const mainFilePath = path.join(uploadDir, mainFilename);
+      
+      await sharp(imageBuffer)
+        .resize(1200, 900, {
+          fit: "cover",
+          position: "center",
+        })
+        .webp({ quality: 85 })
+        .toFile(mainFilePath);
+
+      // Process thumbnail: resize to 400x400 (square for cards)
+      const thumbFilename = `${sanitizedFilename}_thumb.webp`;
+      const thumbFilePath = path.join(uploadDir, thumbFilename);
+      
+      await sharp(imageBuffer)
+        .resize(400, 400, {
+          fit: "cover",
+          position: "center",
+        })
+        .webp({ quality: 80 })
+        .toFile(thumbFilePath);
+
+      const localPath = `/attached_assets/product_images/${mainFilename}`;
+      const thumbnailPath = `/attached_assets/product_images/${thumbFilename}`;
+      
+      res.json({ 
+        localPath, 
+        thumbnailPath,
+        filename: mainFilename 
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to upload image" });
+    }
+  });
   
   // AI Text Spinner endpoint
   app.post("/api/admin/spin-text", isAuthenticated, async (req, res) => {
