@@ -11,6 +11,7 @@ import axios from "axios";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
+import sharp from "sharp";
 
 const spinRequestSchema = z.object({
   field: z.enum(["title", "description", "maxsTake"]),
@@ -88,7 +89,7 @@ export async function registerRoutes(
     }
   });
 
-  // Download and save image locally
+  // Download, process, and save image locally with standardized sizing
   app.post("/api/admin/save-image", isAuthenticated, async (req, res) => {
     try {
       const { imageUrl, filename } = req.body;
@@ -105,25 +106,49 @@ export async function registerRoutes(
         timeout: 30000,
       });
 
-      const contentType = response.headers["content-type"] || "image/jpeg";
-      const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-      
       const sanitizedFilename = (filename || `product_${Date.now()}`)
         .replace(/[^a-zA-Z0-9_-]/g, "_")
         .substring(0, 50);
       
-      const finalFilename = `${sanitizedFilename}_${Date.now()}.${ext}`;
+      const timestamp = Date.now();
       const uploadDir = path.join(process.cwd(), "attached_assets", "product_images");
       
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
+
+      // Process main image: resize to 1200x900 (4:3 ratio), convert to WebP
+      const mainFilename = `${sanitizedFilename}_${timestamp}.webp`;
+      const mainFilePath = path.join(uploadDir, mainFilename);
       
-      const filePath = path.join(uploadDir, finalFilename);
-      fs.writeFileSync(filePath, response.data);
+      await sharp(response.data)
+        .resize(1200, 900, {
+          fit: "cover",
+          position: "center",
+        })
+        .webp({ quality: 85 })
+        .toFile(mainFilePath);
+
+      // Process thumbnail: resize to 400x400 (square for cards), convert to WebP
+      const thumbFilename = `${sanitizedFilename}_${timestamp}_thumb.webp`;
+      const thumbFilePath = path.join(uploadDir, thumbFilename);
       
-      const localPath = `/attached_assets/product_images/${finalFilename}`;
-      res.json({ localPath, filename: finalFilename });
+      await sharp(response.data)
+        .resize(400, 400, {
+          fit: "cover",
+          position: "center",
+        })
+        .webp({ quality: 80 })
+        .toFile(thumbFilePath);
+      
+      const localPath = `/attached_assets/product_images/${mainFilename}`;
+      const thumbnailPath = `/attached_assets/product_images/${thumbFilename}`;
+      
+      res.json({ 
+        localPath, 
+        thumbnailPath,
+        filename: mainFilename 
+      });
     } catch (error) {
       console.error("Error saving image:", error);
       res.status(500).json({ error: error instanceof Error ? error.message : "Failed to save image" });
