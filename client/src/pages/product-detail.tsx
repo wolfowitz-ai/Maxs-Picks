@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { useProduct, useCategories } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,10 @@ export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: product, isLoading, error } = useProduct(id || "");
   const { data: categories } = useCategories();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   const getCategoryIcon = (categoryName: string) => {
     const category = categories?.find(c => c.name === categoryName);
