@@ -117,32 +117,47 @@ export async function registerRoutes(
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      // Process main image: resize to 1200x900 (4:3 ratio), convert to WebP
-      const mainFilename = `${sanitizedFilename}_${timestamp}.webp`;
-      const mainFilePath = path.join(uploadDir, mainFilename);
-      
-      await sharp(response.data)
-        .resize(1200, 900, {
-          fit: "cover",
-          position: "center",
-        })
-        .webp({ quality: 85 })
-        .toFile(mainFilePath);
+      let localPath: string;
+      let thumbnailPath: string | undefined;
+      let mainFilename: string;
 
-      // Process thumbnail: resize to 400x400 (square for cards), convert to WebP
-      const thumbFilename = `${sanitizedFilename}_${timestamp}_thumb.webp`;
-      const thumbFilePath = path.join(uploadDir, thumbFilename);
-      
-      await sharp(response.data)
-        .resize(400, 400, {
-          fit: "cover",
-          position: "center",
-        })
-        .webp({ quality: 80 })
-        .toFile(thumbFilePath);
-      
-      const localPath = `/attached_assets/product_images/${mainFilename}`;
-      const thumbnailPath = `/attached_assets/product_images/${thumbFilename}`;
+      try {
+        // Process main image: resize to 1200x900 (4:3 ratio), convert to WebP
+        mainFilename = `${sanitizedFilename}_${timestamp}.webp`;
+        const mainFilePath = path.join(uploadDir, mainFilename);
+        
+        await sharp(response.data)
+          .resize(1200, 900, {
+            fit: "cover",
+            position: "center",
+          })
+          .webp({ quality: 85 })
+          .toFile(mainFilePath);
+
+        // Process thumbnail: resize to 400x400 (square for cards), convert to WebP
+        const thumbFilename = `${sanitizedFilename}_${timestamp}_thumb.webp`;
+        const thumbFilePath = path.join(uploadDir, thumbFilename);
+        
+        await sharp(response.data)
+          .resize(400, 400, {
+            fit: "cover",
+            position: "center",
+          })
+          .webp({ quality: 80 })
+          .toFile(thumbFilePath);
+        
+        localPath = `/attached_assets/product_images/${mainFilename}`;
+        thumbnailPath = `/attached_assets/product_images/${thumbFilename}`;
+      } catch (sharpError) {
+        // Fallback: save original image if Sharp processing fails
+        console.warn("Sharp processing failed, saving original image:", sharpError);
+        const contentType = response.headers["content-type"] || "image/jpeg";
+        const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+        mainFilename = `${sanitizedFilename}_${timestamp}.${ext}`;
+        const fallbackPath = path.join(uploadDir, mainFilename);
+        fs.writeFileSync(fallbackPath, response.data);
+        localPath = `/attached_assets/product_images/${mainFilename}`;
+      }
       
       res.json({ 
         localPath, 
