@@ -228,6 +228,17 @@ export async function registerRoutes(
         return res.status(400).json({ error: validationError.toString() });
       }
 
+      // Check for duplicate ASIN if provided
+      const asin = validationResult.data.asin;
+      if (asin) {
+        const existingProduct = await storage.getProductByAsin(asin);
+        if (existingProduct) {
+          return res.status(409).json({ 
+            error: `A product with ASIN "${asin}" already exists: "${existingProduct.title}"` 
+          });
+        }
+      }
+
       const product = await storage.createProduct(validationResult.data);
       res.status(201).json(product);
     } catch (error) {

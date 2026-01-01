@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { useCategories, useCreateProduct } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, HardDrive, Sparkles } from "lucide-react";
+import { Download, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, HardDrive, Sparkles, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useMutation } from "@tanstack/react-query";
 
@@ -396,22 +396,41 @@ export function ImportModal() {
               <span className="font-medium">Product data fetched! Review and edit before saving.</span>
             </div>
 
-            {stagedProduct.images.length > 1 && (
+            {stagedProduct.images.length > 0 && (
               <div className="space-y-2">
-                <Label>Select Primary Image</Label>
+                <Label>Select Primary Image (click X to remove)</Label>
                 <div className="flex gap-2 flex-wrap">
                   {stagedProduct.images.map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedImageIndex(idx)}
-                      className={`w-20 h-20 rounded-lg border-2 overflow-hidden transition-all ${
-                        selectedImageIndex === idx 
-                          ? "border-primary ring-2 ring-primary/30" 
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <img src={img} alt={`Option ${idx + 1}`} className="w-full h-full object-cover" />
-                    </button>
+                    <div key={idx} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImageIndex(idx)}
+                        className={`w-20 h-20 rounded-lg border-2 overflow-hidden transition-all ${
+                          selectedImageIndex === idx 
+                            ? "border-primary ring-2 ring-primary/30" 
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <img src={img} alt={`Option ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newImages = stagedProduct.images.filter((_, i) => i !== idx);
+                          updateStagedField("images", newImages);
+                          if (selectedImageIndex >= newImages.length) {
+                            setSelectedImageIndex(Math.max(0, newImages.length - 1));
+                          } else if (selectedImageIndex > idx) {
+                            setSelectedImageIndex(selectedImageIndex - 1);
+                          }
+                        }}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                        data-testid={`button-remove-image-${idx}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
