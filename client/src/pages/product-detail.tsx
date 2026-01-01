@@ -167,12 +167,12 @@ export default function ProductDetail() {
                   </span>
                 )}
                 <Button
-                  className="bg-gradient-to-r from-primary to-blue-400 hover:to-blue-500 text-white font-bold shadow-lg hover:shadow-blue-200 transition-all h-12 px-6 rounded-xl text-base group"
+                  className="bg-gradient-to-r from-primary to-blue-400 hover:to-blue-500 text-white font-semibold shadow-md hover:shadow-blue-200 transition-all h-10 px-4 rounded-lg text-sm group"
                   onClick={() => window.open(product.amazonUrl, '_blank')}
                   data-testid="button-buy-amazon"
                 >
                   Buy on Amazon
-                  <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  <ExternalLink className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </div>
 
