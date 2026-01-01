@@ -129,7 +129,7 @@ export default function ProductDetail() {
           className="bg-white rounded-2xl md:rounded-3xl shadow-lg overflow-hidden"
         >
           <div className="grid md:grid-cols-2 gap-0">
-            <div className="relative aspect-square md:aspect-auto bg-gray-50">
+            <div className="relative aspect-[4/3] md:aspect-auto bg-gray-50">
               {product.featured && (
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-md">
                   <Bone className="w-4 h-4" />
@@ -194,11 +194,6 @@ export default function ProductDetail() {
                   <ExternalLink className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
 
-                {product.asin && (
-                  <p className="text-center text-xs text-gray-400 mt-3">
-                    ASIN: {product.asin}
-                  </p>
-                )}
               </div>
             </div>
           </div>
