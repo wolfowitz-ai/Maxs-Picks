@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,24 +25,27 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
     >
       <Card className={`group overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white h-full flex flex-col ${featured ? "border-2 border-amber-300 ring-2 ring-amber-100" : "border-none"}`}>
         {/* Image Container */}
-        <div className="relative aspect-square overflow-hidden bg-gray-50">
-          {featured && (
-            <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium shadow-sm">
-              <Bone className="w-2.5 h-2.5 md:w-3 md:h-3" />
-              <span className="hidden sm:inline">Featured</span>
-            </div>
-          )}
-          <img
-            src={product.image}
-            alt={product.title}
-            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-          />
-          {hasPrice && (
-            <Badge className="absolute top-2 right-2 md:top-3 md:right-3 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-xs md:text-sm font-bold px-2 py-0.5 md:px-3 md:py-1">
-              ${parseFloat(product.price!).toFixed(2)}
-            </Badge>
-          )}
-        </div>
+        <Link href={`/product/${product.id}`} className="block">
+          <div className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer">
+            {featured && (
+              <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium shadow-sm">
+                <Bone className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                <span className="hidden sm:inline">Featured</span>
+              </div>
+            )}
+            <img
+              src={product.image}
+              alt={product.title}
+              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+              data-testid={`img-product-${product.id}`}
+            />
+            {hasPrice && (
+              <Badge className="absolute top-2 right-2 md:top-3 md:right-3 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-xs md:text-sm font-bold px-2 py-0.5 md:px-3 md:py-1">
+                ${parseFloat(product.price!).toFixed(2)}
+              </Badge>
+            )}
+          </div>
+        </Link>
 
         <CardHeader className="p-3 md:p-5 pb-1 md:pb-2">
           <div className="flex justify-between items-center mb-1 md:mb-2">
@@ -53,9 +57,11 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
               <span className="text-xs md:text-sm font-semibold text-gray-700">{parseFloat(product.rating).toFixed(1)}</span>
             </div>
           </div>
-          <h3 className="font-heading text-sm md:text-xl font-bold text-gray-800 leading-tight group-hover:text-primary transition-colors line-clamp-2">
-            {product.title}
-          </h3>
+          <Link href={`/product/${product.id}`}>
+            <h3 className="font-heading text-sm md:text-xl font-bold text-gray-800 leading-tight group-hover:text-primary transition-colors line-clamp-2 cursor-pointer" data-testid={`title-product-${product.id}`}>
+              {product.title}
+            </h3>
+          </Link>
         </CardHeader>
 
         <CardContent className="p-3 md:p-5 pt-1 md:pt-2 flex-grow relative">
