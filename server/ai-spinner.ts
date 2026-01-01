@@ -38,7 +38,7 @@ Do NOT include quotes around your response.`,
 
   description: `You are a copywriter for Max's Picks, a pet product recommendation site run by Max, an adorable Maltipoo.
 Write engaging product descriptions in a friendly, playful corporate voice.
-Keep descriptions to 1-2 sentences (under 150 characters).
+Keep descriptions to exactly 1-2 sentences, around 100-140 characters total.
 Highlight key features and benefits without being too salesy.
 Do NOT include quotes around your response.`,
 
@@ -46,7 +46,7 @@ Do NOT include quotes around your response.`,
 Write a first-person review of this pet product from YOUR perspective as a dog.
 Be enthusiastic, funny, and authentic. Use dog-related expressions naturally.
 Reference things a dog would care about: smell, texture, taste, fun factor, comfort.
-Keep it under 250 characters. Be specific to the product type - don't talk about chewing a shampoo or eating a bed.
+IMPORTANT: Keep it SHORT - under 180 characters (about 1-2 short sentences). Be specific to the product type - don't talk about chewing a shampoo or eating a bed.
 Do NOT include quotes around your response.`
 };
 
@@ -87,10 +87,37 @@ export async function spinText(request: SpinRequest): Promise<string> {
     temperature: 0.8,
   });
   
-  const text = response.choices[0]?.message?.content?.trim() || "";
+  let text = response.choices[0]?.message?.content?.trim() || "";
   
-  if (request.field === "maxsTake" && text.length > 250) {
-    return text.slice(0, 247) + "...";
+  // Remove any surrounding quotes
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    text = text.slice(1, -1);
+  }
+  
+  // Enforce character limits - ensure final result is always <= limit
+  if (request.field === "maxsTake" && text.length > 180) {
+    // Try to cut at a sentence boundary first
+    const maxLen = 180;
+    let result = text.slice(0, maxLen);
+    const lastPeriod = result.lastIndexOf('.');
+    const lastExclaim = result.lastIndexOf('!');
+    const lastSentence = Math.max(lastPeriod, lastExclaim);
+    if (lastSentence > 100) {
+      result = result.slice(0, lastSentence + 1);
+    } else {
+      // Truncate and add ellipsis, ensuring total <= 180
+      result = text.slice(0, 177) + "...";
+    }
+    return result.slice(0, 180); // Final safety check
+  }
+  
+  if (request.field === "description" && text.length > 160) {
+    const truncated = text.slice(0, 157);
+    const lastPeriod = truncated.lastIndexOf('.');
+    if (lastPeriod > 100) {
+      return truncated.slice(0, lastPeriod + 1);
+    }
+    return truncated + "...";
   }
   
   return text;

@@ -9,8 +9,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { useCategories, useCreateProduct } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, HardDrive } from "lucide-react";
+import { Download, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, HardDrive, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useMutation } from "@tanstack/react-query";
+
+interface SpinRequest {
+  field: "title" | "description" | "maxsTake";
+  existingText?: string;
+  productContext: {
+    title?: string;
+    description?: string;
+    category?: string;
+    price?: string;
+  };
+}
+
+async function spinTextApi(request: SpinRequest): Promise<string> {
+  const response = await fetch("/api/admin/spin-text", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(request),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to generate text");
+  }
+  
+  const data = await response.json();
+  return data.text;
+}
 
 interface StagedProduct {
   title: string;
@@ -42,6 +71,58 @@ export function ImportModal() {
   const { toast } = useToast();
   const { data: categories } = useCategories();
   const createProduct = useCreateProduct();
+  
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [undoMaxsTake, setUndoMaxsTake] = useState<string | undefined>(undefined);
+
+  const spinMutation = useMutation({
+    mutationFn: spinTextApi,
+    onSuccess: (text) => {
+      if (stagedProduct) {
+        setStagedProduct({ ...stagedProduct, maxsTake: text });
+      }
+      toast({
+        title: "Text generated!",
+        description: "Max's Take has been updated.",
+      });
+      setIsSpinning(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Generation failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      setIsSpinning(false);
+    },
+  });
+
+  const handleSpinMaxsTake = () => {
+    if (!stagedProduct) return;
+    setUndoMaxsTake(stagedProduct.maxsTake);
+    setIsSpinning(true);
+    spinMutation.mutate({
+      field: "maxsTake",
+      existingText: stagedProduct.maxsTake || undefined,
+      productContext: {
+        title: stagedProduct.title || undefined,
+        description: stagedProduct.description || undefined,
+        category: stagedProduct.category || undefined,
+        price: stagedProduct.price || undefined,
+      },
+    });
+  };
+
+  const handleUndoMaxsTake = () => {
+    if (undoMaxsTake !== undefined && stagedProduct) {
+      setStagedProduct({ ...stagedProduct, maxsTake: undoMaxsTake });
+      setUndoMaxsTake(undefined);
+      toast({
+        title: "Reverted",
+        description: "Max's Take has been restored.",
+      });
+    }
+  };
 
   const resetState = () => {
     setUrl("");
@@ -365,22 +446,55 @@ export function ImportModal() {
 
               <div className="col-span-2 space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label>Max's Take * (What does Max think about this?)</Label>
-                  <span className={`text-xs ${stagedProduct.maxsTake.length > 250 ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                    {stagedProduct.maxsTake.length}/250
+                  <div className="flex items-center gap-2">
+                    <Label>Max's Take *</Label>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSpinMaxsTake}
+                        disabled={isSpinning}
+                        className="h-7 px-2 text-primary hover:text-primary/80 hover:bg-primary/10"
+                        data-testid="button-spin-maxstake-import"
+                      >
+                        {isSpinning ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                        <span className="ml-1 text-xs">{stagedProduct.maxsTake ? "Rewrite" : "Generate"}</span>
+                      </Button>
+                      {undoMaxsTake !== undefined && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleUndoMaxsTake}
+                          className="h-7 px-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                          data-testid="button-undo-maxstake-import"
+                        >
+                          <span className="text-xs">Undo</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`text-xs ${stagedProduct.maxsTake.length > 180 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                    {stagedProduct.maxsTake.length}/180
                   </span>
                 </div>
                 <Textarea
                   value={stagedProduct.maxsTake}
                   onChange={(e) => {
                     const newValue = e.target.value;
-                    if (newValue.length <= 250 || newValue.length < stagedProduct.maxsTake.length) {
-                      updateStagedField("maxsTake", newValue.slice(0, 250));
+                    if (newValue.length <= 180 || newValue.length < stagedProduct.maxsTake.length) {
+                      updateStagedField("maxsTake", newValue.slice(0, 180));
                     }
                   }}
                   placeholder="Write a fun review from Max's perspective..."
                   rows={2}
                   required
+                  disabled={isSpinning}
                 />
               </div>
 

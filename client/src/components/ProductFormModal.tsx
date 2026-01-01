@@ -12,10 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { useMutation } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
 
-type FieldType = "title" | "description" | "maxsTake";
-
 interface SpinRequest {
-  field: FieldType;
+  field: "title" | "description" | "maxsTake";
   existingText?: string;
   productContext: {
     title?: string;
@@ -152,7 +150,8 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
 
   const isPending = createProduct.isPending || updateProduct.isPending;
 
-  const [spinningField, setSpinningField] = useState<FieldType | null>(null);
+  const [spinningField, setSpinningField] = useState<"description" | "maxsTake" | null>(null);
+  const [undoHistory, setUndoHistory] = useState<{ description?: string; maxsTake?: string }>({});
 
   const spinMutation = useMutation({
     mutationFn: spinTextApi,
@@ -160,7 +159,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
       setFormData(prev => ({ ...prev, [variables.field]: text }));
       toast({
         title: "Text generated!",
-        description: `${variables.field === "maxsTake" ? "Max's Take" : variables.field === "title" ? "Title" : "Description"} has been updated.`,
+        description: `${variables.field === "maxsTake" ? "Max's Take" : "Description"} has been updated.`,
       });
       setSpinningField(null);
     },
@@ -174,7 +173,9 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
     },
   });
 
-  const handleSpin = (field: FieldType) => {
+  const handleSpin = (field: "description" | "maxsTake") => {
+    // Save current value for undo
+    setUndoHistory(prev => ({ ...prev, [field]: formData[field] }));
     setSpinningField(field);
     spinMutation.mutate({
       field,
@@ -188,23 +189,48 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
     });
   };
 
-  const SpinButton = ({ field, disabled }: { field: FieldType; disabled?: boolean }) => (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      onClick={() => handleSpin(field)}
-      disabled={disabled || spinningField !== null}
-      className="h-7 px-2 text-primary hover:text-primary/80 hover:bg-primary/10"
-      data-testid={`button-spin-${field}`}
-    >
-      {spinningField === field ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Sparkles className="h-4 w-4" />
+  const handleUndo = (field: "description" | "maxsTake") => {
+    if (undoHistory[field] !== undefined) {
+      setFormData(prev => ({ ...prev, [field]: undoHistory[field]! }));
+      setUndoHistory(prev => ({ ...prev, [field]: undefined }));
+      toast({
+        title: "Reverted",
+        description: "Text has been restored to previous version.",
+      });
+    }
+  };
+
+  const SpinButton = ({ field, disabled }: { field: "description" | "maxsTake"; disabled?: boolean }) => (
+    <div className="flex items-center gap-1">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => handleSpin(field)}
+        disabled={disabled || spinningField !== null}
+        className="h-7 px-2 text-primary hover:text-primary/80 hover:bg-primary/10"
+        data-testid={`button-spin-${field}`}
+      >
+        {spinningField === field ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Sparkles className="h-4 w-4" />
+        )}
+        <span className="ml-1 text-xs">{formData[field] ? "Rewrite" : "Generate"}</span>
+      </Button>
+      {undoHistory[field] !== undefined && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => handleUndo(field)}
+          className="h-7 px-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+          data-testid={`button-undo-${field}`}
+        >
+          <span className="text-xs">Undo</span>
+        </Button>
       )}
-      <span className="ml-1 text-xs">{formData[field] ? "Rewrite" : "Generate"}</span>
-    </Button>
+    </div>
   );
 
   return (
@@ -219,17 +245,13 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="title">Product Title *</Label>
-                <SpinButton field="title" />
-              </div>
+              <Label htmlFor="title">Product Title *</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g., Indestructible Blue Ball"
                 required
-                disabled={spinningField === "title"}
               />
             </div>
 
@@ -255,8 +277,8 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
                   <Label htmlFor="maxsTake">Max's Take *</Label>
                   <SpinButton field="maxsTake" />
                 </div>
-                <span className={`text-xs ${formData.maxsTake.length > 250 ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                  {formData.maxsTake.length}/250
+                <span className={`text-xs ${formData.maxsTake.length > 180 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                  {formData.maxsTake.length}/180
                 </span>
               </div>
               <Textarea
@@ -264,8 +286,8 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
                 value={formData.maxsTake}
                 onChange={(e) => {
                   const newValue = e.target.value;
-                  if (newValue.length <= 250 || newValue.length < formData.maxsTake.length) {
-                    setFormData({ ...formData, maxsTake: newValue.slice(0, 250) });
+                  if (newValue.length <= 180 || newValue.length < formData.maxsTake.length) {
+                    setFormData({ ...formData, maxsTake: newValue.slice(0, 180) });
                   }
                 }}
                 placeholder="What does Max think about this product?"
