@@ -8,7 +8,10 @@ function getOpenAI(): OpenAI {
     if (!apiKey) {
       throw new Error("OpenAI API key not configured. Please set up AI Integrations or add OPENAI_API_KEY.");
     }
-    openaiClient = new OpenAI({ apiKey });
+    openaiClient = new OpenAI({ 
+      apiKey,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
   }
   return openaiClient;
 }
