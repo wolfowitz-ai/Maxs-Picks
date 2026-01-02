@@ -113,6 +113,13 @@ async function scrapeDirectly(asin: string, imageCount: number): Promise<Scraped
 
   const $ = cheerio.load(response.data);
   
+  const title = $("#productTitle").text().trim();
+  console.log(`[DEBUG] Page title found: "${title ? title.substring(0, 50) + '...' : 'NONE'}"`);
+  console.log(`[DEBUG] Response length: ${response.data.length} chars`);
+  if (!title) {
+    console.log(`[DEBUG] Page may be blocked. First 500 chars: ${response.data.substring(0, 500)}`);
+  }
+  
   const images: string[] = [];
   
   const mainImage = $("#landingImage").attr("src") || $("#imgBlkFront").attr("src");
