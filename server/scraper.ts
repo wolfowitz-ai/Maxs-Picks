@@ -113,26 +113,18 @@ async function scrapeDirectly(asin: string, imageCount: number): Promise<Scraped
 
   const $ = cheerio.load(response.data);
   
-  const title = $("#productTitle").text().trim();
-  console.log(`[DEBUG] Page title found: "${title ? title.substring(0, 50) + '...' : 'NONE'}"`);
-  console.log(`[DEBUG] Response length: ${response.data.length} chars`);
-  if (!title) {
-    console.log(`[DEBUG] Page may be blocked. First 500 chars: ${response.data.substring(0, 500)}`);
-  }
-  
   const images: string[] = [];
   
   const mainImage = $("#landingImage").attr("src") || $("#imgBlkFront").attr("src");
   if (mainImage) {
-    const standardizedMain = standardizeAmazonImageUrl(mainImage);
-    images.push(standardizedMain);
+    images.push(mainImage);
   }
   
   $("#altImages .a-button-thumbnail img").each((i, el) => {
     if (images.length >= imageCount) return false;
     const thumbSrc = $(el).attr("src");
     if (thumbSrc) {
-      const largeSrc = standardizeAmazonImageUrl(thumbSrc);
+      const largeSrc = thumbSrc.replace(/\._[^.]+_\./, "._SL1500_.");
       if (!images.includes(largeSrc)) {
         images.push(largeSrc);
       }
@@ -190,15 +182,14 @@ async function scrapeWithScraperAPI(asin: string, imageCount: number): Promise<S
   const images: string[] = [];
   const mainImage = $("#landingImage").attr("src") || $("#imgBlkFront").attr("src");
   if (mainImage) {
-    const standardizedMain = standardizeAmazonImageUrl(mainImage);
-    images.push(standardizedMain);
+    images.push(mainImage);
   }
   
   $("#altImages .a-button-thumbnail img").each((i, el) => {
     if (images.length >= imageCount) return false;
     const thumbSrc = $(el).attr("src");
     if (thumbSrc) {
-      const largeSrc = standardizeAmazonImageUrl(thumbSrc);
+      const largeSrc = thumbSrc.replace(/\._[^.]+_\./, "._SL1500_.");
       if (!images.includes(largeSrc)) {
         images.push(largeSrc);
       }
