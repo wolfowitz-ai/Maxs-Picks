@@ -54,11 +54,11 @@ export function ImageCarousel({
 
   if (images.length === 1) {
     return (
-      <div className={`overflow-hidden ${aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]"} ${className}`}>
+      <div className={`overflow-hidden bg-gray-50 ${aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]"} ${className}`}>
         <img 
           src={images[0]} 
           alt={alt} 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
         />
       </div>
     );
@@ -71,12 +71,12 @@ export function ImageCarousel({
           {images.map((image, index) => (
             <div 
               key={index} 
-              className={`flex-[0_0_100%] min-w-0 ${aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]"}`}
+              className={`flex-[0_0_100%] min-w-0 bg-gray-50 ${aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]"}`}
             >
               <img
                 src={image}
                 alt={`${alt} - Image ${index + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 draggable={false}
               />
             </div>

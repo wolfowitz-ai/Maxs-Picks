@@ -75,6 +75,11 @@ export function generateResponsiveImageSet(imageUrl: string): ImageResponsiveSet
   };
 }
 
+function extractBaseImageId(imageUrl: string): string | null {
+  const match = imageUrl.match(/\/I\/([A-Za-z0-9+%-]+?)(?:\._|\.(?:jpg|jpeg|png|gif|webp))/i);
+  return match ? match[1] : null;
+}
+
 export function extractASINFromUrl(urlOrAsin: string): string {
   if (/^[A-Z0-9]{10}$/i.test(urlOrAsin)) {
     return urlOrAsin.toUpperCase();
@@ -114,9 +119,12 @@ async function scrapeDirectly(asin: string, imageCount: number): Promise<Scraped
   const $ = cheerio.load(response.data);
   
   const images: string[] = [];
+  const seenBaseIds = new Set<string>();
   
   const mainImage = $("#landingImage").attr("src") || $("#imgBlkFront").attr("src");
   if (mainImage) {
+    const baseId = extractBaseImageId(mainImage);
+    if (baseId) seenBaseIds.add(baseId);
     images.push(mainImage);
   }
   
@@ -124,6 +132,11 @@ async function scrapeDirectly(asin: string, imageCount: number): Promise<Scraped
     if (images.length >= imageCount) return false;
     const thumbSrc = $(el).attr("src");
     if (thumbSrc) {
+      const baseId = extractBaseImageId(thumbSrc);
+      if (baseId && seenBaseIds.has(baseId)) {
+        return;
+      }
+      if (baseId) seenBaseIds.add(baseId);
       const largeSrc = thumbSrc.replace(/\._[^.]+_\./, "._SL1500_.");
       if (!images.includes(largeSrc)) {
         images.push(largeSrc);
@@ -180,8 +193,12 @@ async function scrapeWithScraperAPI(asin: string, imageCount: number): Promise<S
   const $ = cheerio.load(response.data);
   
   const images: string[] = [];
+  const seenBaseIds = new Set<string>();
+  
   const mainImage = $("#landingImage").attr("src") || $("#imgBlkFront").attr("src");
   if (mainImage) {
+    const baseId = extractBaseImageId(mainImage);
+    if (baseId) seenBaseIds.add(baseId);
     images.push(mainImage);
   }
   
@@ -189,6 +206,11 @@ async function scrapeWithScraperAPI(asin: string, imageCount: number): Promise<S
     if (images.length >= imageCount) return false;
     const thumbSrc = $(el).attr("src");
     if (thumbSrc) {
+      const baseId = extractBaseImageId(thumbSrc);
+      if (baseId && seenBaseIds.has(baseId)) {
+        return;
+      }
+      if (baseId) seenBaseIds.add(baseId);
       const largeSrc = thumbSrc.replace(/\._[^.]+_\./, "._SL1500_.");
       if (!images.includes(largeSrc)) {
         images.push(largeSrc);
