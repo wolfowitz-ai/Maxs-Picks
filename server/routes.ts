@@ -122,14 +122,14 @@ export async function registerRoutes(
       let mainFilename: string;
 
       try {
-        // Process main image: resize to 1200x900 (4:3 ratio), convert to WebP
+        // Process main image: resize to fit within 1200x1200, preserve aspect ratio, convert to WebP
         mainFilename = `${sanitizedFilename}_${timestamp}.webp`;
         const mainFilePath = path.join(uploadDir, mainFilename);
         
         await sharp(response.data)
-          .resize(1200, 900, {
-            fit: "cover",
-            position: "center",
+          .resize(1200, 1200, {
+            fit: "inside",
+            withoutEnlargement: true,
           })
           .webp({ quality: 85 })
           .toFile(mainFilePath);
@@ -193,14 +193,14 @@ export async function registerRoutes(
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      // Process main image: resize to 1200x900 (4:3 ratio), convert to WebP
+      // Process main image: resize to fit within 1200x1200, preserve aspect ratio, convert to WebP
       const mainFilename = `${sanitizedFilename}.webp`;
       const mainFilePath = path.join(uploadDir, mainFilename);
       
       await sharp(imageBuffer)
-        .resize(1200, 900, {
-          fit: "cover",
-          position: "center",
+        .resize(1200, 1200, {
+          fit: "inside",
+          withoutEnlargement: true,
         })
         .webp({ quality: 85 })
         .toFile(mainFilePath);
