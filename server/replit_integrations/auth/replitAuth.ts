@@ -137,6 +137,16 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
+  // Check allowlist if configured
+  const allowedUsers = process.env.ADMIN_ALLOWED_USERS;
+  if (allowedUsers) {
+    const allowedList = allowedUsers.split(",").map(u => u.trim().toLowerCase());
+    const username = user.claims?.["username"] || user.claims?.["preferred_username"] || "";
+    if (!allowedList.includes(username.toLowerCase())) {
+      return res.status(403).json({ message: "Access denied. Your account is not authorized for admin access." });
+    }
+  }
+
   const now = Math.floor(Date.now() / 1000);
   if (now <= user.expires_at) {
     return next();
