@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories, useCreateProduct, useUpdateProduct } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star, Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Loader2, Star, Sparkles, Upload, Image as ImageIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useMutation } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
+import { SortableImageList } from "./SortableImageList";
 
 interface SpinRequest {
   field: "title" | "description" | "maxsTake";
@@ -60,8 +61,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
     price: "",
     rating: "",
     reviews: 0,
-    image: "",
-    images: [] as string[],
+    allImages: [] as string[],
     category: "",
     amazonUrl: "",
     asin: "",
@@ -74,6 +74,9 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
 
   useEffect(() => {
     if (product) {
+      const allImages = product.image 
+        ? [product.image, ...(product.images || [])]
+        : (product.images || []);
       setFormData({
         title: product.title,
         description: product.description,
@@ -81,8 +84,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         price: product.price || "",
         rating: product.rating,
         reviews: product.reviews,
-        image: product.image,
-        images: product.images || [],
+        allImages,
         category: product.category,
         amazonUrl: product.amazonUrl,
         asin: product.asin || "",
@@ -96,8 +98,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         price: "",
         rating: "4.5",
         reviews: 0,
-        image: "",
-        images: [],
+        allImages: [],
         category: categories?.[0]?.name || "Toys",
         amazonUrl: "",
         asin: "",
@@ -109,7 +110,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.image) {
+    if (formData.allImages.length === 0) {
       toast({
         title: "Image required",
         description: "Please add at least one product image.",
@@ -118,10 +119,21 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
       return;
     }
     
+    const [primaryImage, ...secondaryImages] = formData.allImages;
+    
     const productData = {
-      ...formData,
+      title: formData.title,
+      description: formData.description,
+      maxsTake: formData.maxsTake,
       price: formData.price || null,
+      rating: formData.rating,
       reviews: Number(formData.reviews),
+      image: primaryImage,
+      images: secondaryImages,
+      category: formData.category,
+      amazonUrl: formData.amazonUrl,
+      asin: formData.asin,
+      featured: formData.featured,
     };
 
     if (isEditing && product) {
@@ -250,18 +262,8 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
   );
 
   const addImageToForm = useCallback((imagePath: string) => {
-    if (!formData.image) {
-      setFormData(prev => ({ ...prev, image: imagePath }));
-    } else if (formData.images.length < 2) {
-      setFormData(prev => ({ ...prev, images: [...prev.images, imagePath] }));
-    } else {
-      toast({
-        title: "Maximum images reached",
-        description: "You can only add up to 3 images per product.",
-        variant: "destructive",
-      });
-    }
-  }, [formData.image, formData.images, toast]);
+    setFormData(prev => ({ ...prev, allImages: [...prev.allImages, imagePath] }));
+  }, []);
 
   const handleImageUpload = useCallback(async (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
@@ -469,63 +471,21 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label>Product Images (up to 3) *</Label>
+              <Label>Product Images *</Label>
               <div className="space-y-3">
-                {/* Image gallery */}
-                {(formData.image || formData.images.length > 0) && (
-                  <div className="flex gap-2 flex-wrap">
-                    {formData.image && (
-                      <div className="relative group">
-                        <img 
-                          src={formData.image} 
-                          alt="Primary" 
-                          className="w-20 h-20 object-cover rounded-lg border-2 border-primary"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (formData.images.length > 0) {
-                              const [newPrimary, ...rest] = formData.images;
-                              setFormData({ ...formData, image: newPrimary, images: rest });
-                            } else {
-                              setFormData({ ...formData, image: "" });
-                            }
-                          }}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          data-testid="button-remove-primary-image"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                        <span className="absolute bottom-1 left-1 bg-primary text-white text-[10px] px-1 rounded">1</span>
-                      </div>
-                    )}
-                    {formData.images.map((img, idx) => (
-                      <div key={idx} className="relative group">
-                        <img 
-                          src={img} 
-                          alt={`Image ${idx + 2}`} 
-                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newImages = formData.images.filter((_, i) => i !== idx);
-                            setFormData({ ...formData, images: newImages });
-                          }}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          data-testid={`button-remove-image-${idx}`}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                        <span className="absolute bottom-1 left-1 bg-gray-600 text-white text-[10px] px-1 rounded">{idx + 2}</span>
-                      </div>
-                    ))}
-                  </div>
+                {formData.allImages.length > 0 && (
+                  <SortableImageList
+                    images={formData.allImages}
+                    onReorder={(newImages) => setFormData({ ...formData, allImages: newImages })}
+                    onRemove={(idx) => {
+                      const newImages = formData.allImages.filter((_, i) => i !== idx);
+                      setFormData({ ...formData, allImages: newImages });
+                    }}
+                  />
                 )}
 
                 {/* Upload area */}
-                {(formData.image ? formData.images.length : 0) < 2 && (
-                  <div
+                <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={async (e) => {
@@ -567,7 +527,6 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
                       </div>
                     )}
                   </div>
-                )}
 
                 {/* URL input fallback */}
                 <div className="flex gap-2">

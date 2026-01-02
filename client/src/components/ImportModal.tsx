@@ -6,12 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { useCategories, useCreateProduct } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, HardDrive, Sparkles, X } from "lucide-react";
+import { Download, Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, HardDrive, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useMutation } from "@tanstack/react-query";
+import { SortableImageList } from "./SortableImageList";
 
 interface SpinRequest {
   field: "title" | "description" | "maxsTake";
@@ -64,7 +64,6 @@ export function ImportModal() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stagedProduct, setStagedProduct] = useState<StagedProduct | null>(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [saveImageLocally, setSaveImageLocally] = useState(true);
   const [isSavingImage, setIsSavingImage] = useState(false);
   
@@ -128,7 +127,6 @@ export function ImportModal() {
     setUrl("");
     setError(null);
     setStagedProduct(null);
-    setSelectedImageIndex(0);
     setIsSavingImage(false);
   };
 
@@ -212,7 +210,6 @@ export function ImportModal() {
     try {
       const imagesToProcess = stagedProduct.images;
       const processedImages: string[] = [];
-      let primaryImage = "";
 
       for (let i = 0; i < imagesToProcess.length; i++) {
         let imageUrl = imagesToProcess[i];
@@ -225,20 +222,10 @@ export function ImportModal() {
           }
         }
         
-        if (i === selectedImageIndex) {
-          primaryImage = imageUrl;
-        } else {
-          processedImages.push(imageUrl);
-        }
+        processedImages.push(imageUrl);
       }
 
-      if (!primaryImage && processedImages.length > 0) {
-        primaryImage = processedImages.shift()!;
-      }
-
-      if (!primaryImage) {
-        primaryImage = stagedProduct.image || "";
-      }
+      const primaryImage = processedImages.shift() || "";
 
       if (!primaryImage) {
         toast({
@@ -424,41 +411,15 @@ export function ImportModal() {
 
             {stagedProduct.images.length > 0 && (
               <div className="space-y-2">
-                <Label>Select Primary Image (click X to remove)</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {stagedProduct.images.map((img, idx) => (
-                    <div key={idx} className="relative group">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedImageIndex(idx)}
-                        className={`w-20 h-20 rounded-lg border-2 overflow-hidden transition-all ${
-                          selectedImageIndex === idx 
-                            ? "border-primary ring-2 ring-primary/30" 
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <img src={img} alt={`Option ${idx + 1}`} className="w-full h-full object-cover" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const newImages = stagedProduct.images.filter((_, i) => i !== idx);
-                          updateStagedField("images", newImages);
-                          if (selectedImageIndex >= newImages.length) {
-                            setSelectedImageIndex(Math.max(0, newImages.length - 1));
-                          } else if (selectedImageIndex > idx) {
-                            setSelectedImageIndex(selectedImageIndex - 1);
-                          }
-                        }}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                        data-testid={`button-remove-image-${idx}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <Label>Product Images</Label>
+                <SortableImageList
+                  images={stagedProduct.images}
+                  onReorder={(newImages) => updateStagedField("images", newImages)}
+                  onRemove={(idx) => {
+                    const newImages = stagedProduct.images.filter((_, i) => i !== idx);
+                    updateStagedField("images", newImages);
+                  }}
+                />
               </div>
             )}
 
@@ -595,16 +556,20 @@ export function ImportModal() {
               </div>
 
               <div className="col-span-2 space-y-2">
-                <Label>Image URL *</Label>
+                <Label>Add Image URL</Label>
                 <Input
-                  value={stagedProduct.images[selectedImageIndex] || stagedProduct.image}
-                  onChange={(e) => {
-                    const newImages = [...stagedProduct.images];
-                    newImages[selectedImageIndex] = e.target.value;
-                    updateStagedField("images", newImages);
-                    updateStagedField("image", e.target.value);
+                  placeholder="Paste image URL and press Enter..."
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const input = e.target as HTMLInputElement;
+                      const url = input.value.trim();
+                      if (url) {
+                        updateStagedField("images", [...stagedProduct.images, url]);
+                        input.value = "";
+                      }
+                    }
                   }}
-                  required
                 />
               </div>
 
