@@ -13,6 +13,69 @@ export interface ScrapedProduct {
   asin?: string;
 }
 
+export interface ImageSizeOptions {
+  size?: number;
+  variant?: 'SL' | 'AC_SL' | 'AC_UL' | 'SX' | 'SY';
+}
+
+export interface ImageResponsiveSet {
+  thumbnail: string;
+  small: string;
+  medium: string;
+  large: string;
+  xlarge: string;
+}
+
+const AMAZON_SIZE_MODIFIER_REGEX = /\._[A-Z_]{2,10}[0-9]{2,4}_\./g;
+
+export function standardizeAmazonImageUrl(
+  imageUrl: string, 
+  options: ImageSizeOptions = {}
+): string {
+  try {
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      return imageUrl;
+    }
+
+    const { size = 1500, variant = 'AC_SL' } = options;
+
+    if (!imageUrl.includes('media-amazon.com') && !imageUrl.includes('images-amazon.com')) {
+      return imageUrl;
+    }
+
+    const extensionMatch = imageUrl.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i);
+    if (!extensionMatch) {
+      return imageUrl;
+    }
+
+    const extension = extensionMatch[1];
+    const queryString = extensionMatch[2] || '';
+
+    let cleanUrl = imageUrl.replace(AMAZON_SIZE_MODIFIER_REGEX, '.');
+
+    const newModifier = `._${variant}${size}_.`;
+    cleanUrl = cleanUrl.replace(
+      new RegExp(`\\.(${extension})(\\?.*)?$`, 'i'),
+      `${newModifier}${extension}${queryString}`
+    );
+
+    return cleanUrl;
+  } catch (error) {
+    console.warn('Failed to standardize Amazon image URL:', error);
+    return imageUrl;
+  }
+}
+
+export function generateResponsiveImageSet(imageUrl: string): ImageResponsiveSet {
+  return {
+    thumbnail: standardizeAmazonImageUrl(imageUrl, { size: 200, variant: 'AC_SL' }),
+    small: standardizeAmazonImageUrl(imageUrl, { size: 400, variant: 'AC_SL' }),
+    medium: standardizeAmazonImageUrl(imageUrl, { size: 600, variant: 'AC_SL' }),
+    large: standardizeAmazonImageUrl(imageUrl, { size: 1000, variant: 'AC_SL' }),
+    xlarge: standardizeAmazonImageUrl(imageUrl, { size: 1500, variant: 'AC_SL' }),
+  };
+}
+
 export function extractASINFromUrl(urlOrAsin: string): string {
   if (/^[A-Z0-9]{10}$/i.test(urlOrAsin)) {
     return urlOrAsin.toUpperCase();
@@ -55,14 +118,15 @@ async function scrapeDirectly(asin: string, imageCount: number): Promise<Scraped
   
   const mainImage = $("#landingImage").attr("src") || $("#imgBlkFront").attr("src");
   if (mainImage) {
-    images.push(mainImage);
+    const standardizedMain = standardizeAmazonImageUrl(mainImage);
+    images.push(standardizedMain);
   }
   
   $("#altImages .a-button-thumbnail img").each((i, el) => {
     if (images.length >= imageCount) return false;
     const thumbSrc = $(el).attr("src");
     if (thumbSrc) {
-      const largeSrc = thumbSrc.replace(/\._[^.]+_\./, "._SL1500_.");
+      const largeSrc = standardizeAmazonImageUrl(thumbSrc);
       if (!images.includes(largeSrc)) {
         images.push(largeSrc);
       }
@@ -120,14 +184,15 @@ async function scrapeWithScraperAPI(asin: string, imageCount: number): Promise<S
   const images: string[] = [];
   const mainImage = $("#landingImage").attr("src") || $("#imgBlkFront").attr("src");
   if (mainImage) {
-    images.push(mainImage);
+    const standardizedMain = standardizeAmazonImageUrl(mainImage);
+    images.push(standardizedMain);
   }
   
   $("#altImages .a-button-thumbnail img").each((i, el) => {
     if (images.length >= imageCount) return false;
     const thumbSrc = $(el).attr("src");
     if (thumbSrc) {
-      const largeSrc = thumbSrc.replace(/\._[^.]+_\./, "._SL1500_.");
+      const largeSrc = standardizeAmazonImageUrl(thumbSrc);
       if (!images.includes(largeSrc)) {
         images.push(largeSrc);
       }
