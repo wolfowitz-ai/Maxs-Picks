@@ -51,11 +51,11 @@ export function standardizeAmazonImageUrl(
     const extension = extensionMatch[1];
     const queryString = extensionMatch[2] || '';
 
-    let cleanUrl = imageUrl.replace(AMAZON_SIZE_MODIFIER_REGEX, '.');
+    let cleanUrl = imageUrl.replace(AMAZON_SIZE_MODIFIER_REGEX, '');
 
     const newModifier = `._${variant}${size}_.`;
     cleanUrl = cleanUrl.replace(
-      new RegExp(`\\.(${extension})(\\?.*)?$`, 'i'),
+      new RegExp(`\\.?(${extension})(\\?.*)?$`, 'i'),
       `${newModifier}${extension}${queryString}`
     );
 
