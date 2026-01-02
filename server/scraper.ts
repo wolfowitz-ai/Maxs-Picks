@@ -26,8 +26,6 @@ export interface ImageResponsiveSet {
   xlarge: string;
 }
 
-const AMAZON_SIZE_MODIFIER_REGEX = /\._[A-Z_]{2,10}[0-9]{2,4}_\./g;
-
 export function standardizeAmazonImageUrl(
   imageUrl: string, 
   options: ImageSizeOptions = {}
@@ -48,18 +46,19 @@ export function standardizeAmazonImageUrl(
       return imageUrl;
     }
 
-    const extension = extensionMatch[1];
+    const extension = extensionMatch[1].toLowerCase();
     const queryString = extensionMatch[2] || '';
-
-    let cleanUrl = imageUrl.replace(AMAZON_SIZE_MODIFIER_REGEX, '');
-
     const newModifier = `._${variant}${size}_.`;
-    cleanUrl = cleanUrl.replace(
-      new RegExp(`\\.?(${extension})(\\?.*)?$`, 'i'),
+
+    const modifierPattern = /\._[A-Z]{1,3}[_]?[A-Z]{0,3}[0-9]{2,4}_\.(jpg|jpeg|png|gif|webp)/i;
+    if (modifierPattern.test(imageUrl)) {
+      return imageUrl.replace(modifierPattern, `${newModifier}${extension}`) + queryString;
+    }
+
+    return imageUrl.replace(
+      new RegExp(`\\.(${extension})(\\?.*)?$`, 'i'),
       `${newModifier}${extension}${queryString}`
     );
-
-    return cleanUrl;
   } catch (error) {
     console.warn('Failed to standardize Amazon image URL:', error);
     return imageUrl;
