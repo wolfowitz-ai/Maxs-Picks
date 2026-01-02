@@ -69,7 +69,7 @@ export default function ProductDetail() {
   const allImages = [
     product.image,
     ...(product.images || [])
-  ].filter(Boolean) as string[];
+  ].filter((img, index, arr) => img && arr.indexOf(img) === index) as string[];
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans">
@@ -135,7 +135,7 @@ export default function ProductDetail() {
           className="bg-white rounded-2xl md:rounded-3xl shadow-lg overflow-hidden"
         >
           <div className="grid md:grid-cols-2 gap-0">
-            <div className="relative bg-gray-50">
+            <div className="relative bg-gray-50 max-h-[50vh] md:max-h-none overflow-hidden">
               {product.featured && (
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-md">
                   <Bone className="w-4 h-4" />
@@ -148,7 +148,7 @@ export default function ProductDetail() {
                 aspectRatio="4/3"
                 showDots={allImages.length > 1}
                 showArrows={allImages.length > 1}
-                className="md:min-h-[400px]"
+                className="md:min-h-[400px] max-h-[50vh] md:max-h-none"
               />
             </div>
 
