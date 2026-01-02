@@ -281,7 +281,7 @@ export default function Products() {
                     Clear search
                   </Button>
                 ) : (
-                  <Link href="/products/all">
+                  <Link href="/products/all" onClick={() => window.scrollTo(0, 0)}>
                     <Button variant="link" className="mt-2 text-primary">
                       View all products
                     </Button>
