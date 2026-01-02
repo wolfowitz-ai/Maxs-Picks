@@ -236,7 +236,17 @@ export async function scrapeAmazonProduct(urlOrAsin: string, imageCount: number 
   
   try {
     console.log(`Attempting direct scrape for ASIN: ${asin}`);
-    return await scrapeDirectly(asin, imageCount);
+    const directResult = await scrapeDirectly(asin, imageCount);
+    
+    if (!directResult.title && !directResult.image && directResult.reviews === 0) {
+      console.log("Direct scrape returned empty data (likely blocked), trying ScraperAPI fallback...");
+      if (process.env.SCRAPER_API_KEY) {
+        return await scrapeWithScraperAPI(asin, imageCount);
+      }
+      console.log("No ScraperAPI key configured, returning empty result");
+    }
+    
+    return directResult;
   } catch (directError) {
     console.log("Direct scraping failed, trying ScraperAPI fallback...", directError);
     
