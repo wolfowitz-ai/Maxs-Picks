@@ -135,7 +135,10 @@ export default function ProductDetail() {
           className="bg-white rounded-2xl md:rounded-3xl shadow-lg overflow-hidden"
         >
           <div className="grid md:grid-cols-2 gap-0">
-            <div className="relative bg-gray-50 h-[300px] md:h-[500px] overflow-hidden">
+            <div 
+              className="relative bg-gray-50 overflow-hidden"
+              style={{ height: 'clamp(300px, 50vw, 500px)' }}
+            >
               {product.featured && (
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-md">
                   <Bone className="w-4 h-4" />

@@ -106,23 +106,26 @@ export function ImageCarousel({
     );
   }
 
+  const heightStyle = useAspectRatio ? containerStyle : { height: '100%', ...containerStyle };
+
   return (
-    <div className={`relative group ${useAspectRatio ? aspectClass : 'h-full'} ${className}`} style={containerStyle}>
-      <div className="overflow-hidden h-full" ref={emblaRef}>
-        <div className="flex h-full">
+    <div className={`relative group ${useAspectRatio ? aspectClass : ''} ${className}`} style={heightStyle}>
+      <div className="overflow-hidden" style={{ height: '100%' }} ref={emblaRef}>
+        <div className="flex" style={{ height: '100%' }}>
           {images.map((image, index) => {
             const responsive = generateResponsiveSrcSet(image);
             return (
               <div 
                 key={index} 
-                className="flex-[0_0_100%] min-w-0 bg-gray-50 flex items-center justify-center h-full"
+                className="flex-[0_0_100%] min-w-0 bg-gray-50 flex items-center justify-center"
+                style={{ height: '100%' }}
               >
                 <img
                   src={image}
                   alt={`${alt} - Image ${index + 1}`}
                   srcSet={responsive?.srcSet}
                   sizes={responsive?.sizes}
-                  className="max-w-full max-h-full w-auto h-auto object-contain"
+                  style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }}
                   draggable={false}
                   loading="lazy"
                 />
