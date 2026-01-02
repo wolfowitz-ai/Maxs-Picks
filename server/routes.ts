@@ -404,5 +404,93 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/orphan-images", isAuthenticated, async (req, res) => {
+    try {
+      const imageDir = path.join(process.cwd(), "attached_assets", "product_images");
+      
+      if (!fs.existsSync(imageDir)) {
+        return res.json({ orphanImages: [], inUseCount: 0 });
+      }
+
+      const allFiles = fs.readdirSync(imageDir).filter(f => 
+        f.endsWith('.webp') || f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.jpeg')
+      );
+
+      const products = await storage.getAllProducts();
+      const usedImages = new Set<string>();
+      
+      for (const product of products) {
+        if (product.image) {
+          const filename = product.image.split('/').pop();
+          if (filename) usedImages.add(filename);
+        }
+        if (product.images) {
+          for (const img of product.images) {
+            const filename = img.split('/').pop();
+            if (filename) usedImages.add(filename);
+          }
+        }
+      }
+
+      const orphanImages = allFiles.filter(f => !usedImages.has(f));
+      
+      res.json({ 
+        orphanImages, 
+        inUseCount: usedImages.size,
+        totalFiles: allFiles.length
+      });
+    } catch (error) {
+      console.error("Error finding orphan images:", error);
+      res.status(500).json({ error: "Failed to find orphan images" });
+    }
+  });
+
+  app.delete("/api/admin/orphan-images", isAuthenticated, async (req, res) => {
+    try {
+      const imageDir = path.join(process.cwd(), "attached_assets", "product_images");
+      
+      if (!fs.existsSync(imageDir)) {
+        return res.json({ deleted: 0 });
+      }
+
+      const allFiles = fs.readdirSync(imageDir).filter(f => 
+        f.endsWith('.webp') || f.endsWith('.jpg') || f.endsWith('.png') || f.endsWith('.jpeg')
+      );
+
+      const products = await storage.getAllProducts();
+      const usedImages = new Set<string>();
+      
+      for (const product of products) {
+        if (product.image) {
+          const filename = product.image.split('/').pop();
+          if (filename) usedImages.add(filename);
+        }
+        if (product.images) {
+          for (const img of product.images) {
+            const filename = img.split('/').pop();
+            if (filename) usedImages.add(filename);
+          }
+        }
+      }
+
+      const orphanImages = allFiles.filter(f => !usedImages.has(f));
+      let deletedCount = 0;
+
+      for (const filename of orphanImages) {
+        try {
+          fs.unlinkSync(path.join(imageDir, filename));
+          deletedCount++;
+        } catch (err) {
+          console.error(`Failed to delete ${filename}:`, err);
+        }
+      }
+      
+      res.json({ deleted: deletedCount });
+    } catch (error) {
+      console.error("Error deleting orphan images:", error);
+      res.status(500).json({ error: "Failed to delete orphan images" });
+    }
+  });
+
   return httpServer;
 }

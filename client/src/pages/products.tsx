@@ -3,7 +3,8 @@ import { Link, useParams, useLocation } from "wouter";
 import { ProductCard } from "@/components/ProductCard";
 import { Footer } from "@/components/Footer";
 import { useProducts, useCategories } from "@/lib/api";
-import { PawPrint, Menu, Lock, Loader2, Search, X, ChevronRight } from "lucide-react";
+import { Menu, Lock, Loader2, Search, X, ChevronRight } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -95,16 +96,7 @@ export default function Products() {
     <div className="min-h-screen bg-gray-50/50 font-sans">
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="bg-primary text-white p-2 rounded-lg">
-                <PawPrint className="w-5 h-5" />
-              </div>
-              <span className="font-heading font-bold text-xl text-gray-900 tracking-tight">
-                Max's<span className="text-primary">Picks</span>
-              </span>
-            </div>
-          </Link>
+          <Logo />
 
           <div className="hidden md:flex items-center gap-4">
             {showSearch ? (

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { PawPrint, Heart, Bone, ArrowLeft, Instagram } from "lucide-react";
+import { Heart, Bone, ArrowLeft, Instagram, PawPrint } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
 import { maxPortrait } from "@/lib/data";
@@ -34,16 +35,7 @@ export default function About() {
     <div className="min-h-screen bg-gray-50/50 font-sans">
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="bg-primary text-white p-2 rounded-lg">
-                <PawPrint className="w-5 h-5" />
-              </div>
-              <span className="font-heading font-bold text-xl text-gray-900 tracking-tight">
-                Max's<span className="text-primary">Picks</span>
-              </span>
-            </div>
-          </Link>
+          <Logo />
           <Link href="/">
             <Button variant="ghost" className="gap-2">
               <ArrowLeft className="w-4 h-4" />

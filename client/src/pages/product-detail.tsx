@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/Footer";
 import { PawPrint, ExternalLink, ArrowLeft, Loader2, Menu, Lock, Bone, Home } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
 import { ImageCarousel } from "@/components/ImageCarousel";
@@ -36,16 +37,7 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-gray-50/50 flex flex-col">
         <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/">
-              <div className="flex items-center gap-2 cursor-pointer">
-                <div className="bg-primary text-white p-2 rounded-lg">
-                  <PawPrint className="w-5 h-5" />
-                </div>
-                <span className="font-heading font-bold text-xl text-gray-900 tracking-tight">
-                  Max's<span className="text-primary">Picks</span>
-                </span>
-              </div>
-            </Link>
+            <Logo />
           </div>
         </nav>
         <div className="flex-1 flex items-center justify-center">
@@ -75,16 +67,7 @@ export default function ProductDetail() {
     <div className="min-h-screen bg-gray-50/50 font-sans">
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="bg-primary text-white p-2 rounded-lg">
-                <PawPrint className="w-5 h-5" />
-              </div>
-              <span className="font-heading font-bold text-xl text-gray-900 tracking-tight">
-                Max's<span className="text-primary">Picks</span>
-              </span>
-            </div>
-          </Link>
+          <Logo />
 
           <div className="hidden md:flex items-center gap-4">
             <Link href="/" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">Home</Link>

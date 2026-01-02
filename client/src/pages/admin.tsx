@@ -12,7 +12,7 @@ import { ImportModal } from "@/components/ImportModal";
 import { ProductFormModal } from "@/components/ProductFormModal";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home, Star, Menu, X, Check } from "lucide-react";
+import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home, Star, Menu, X, Check, ImageOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { Product } from "@shared/schema";
@@ -52,6 +52,103 @@ function getLayoutSettings(): LayoutSettings {
 
 function saveLayoutSettings(settings: LayoutSettings) {
   localStorage.setItem("layoutSettings", JSON.stringify(settings));
+}
+
+function ImageCleanupCard() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [orphanCount, setOrphanCount] = useState<number | null>(null);
+  const [inUseCount, setInUseCount] = useState<number>(0);
+  const { toast } = useToast();
+
+  const checkOrphans = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/admin/orphan-images", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setOrphanCount(data.orphanImages.length);
+        setInUseCount(data.inUseCount);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to check for orphan images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteOrphans = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch("/api/admin/orphan-images", {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Cleanup complete",
+          description: `Deleted ${data.deleted} orphaned image${data.deleted === 1 ? "" : "s"}.`,
+        });
+        setOrphanCount(0);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete orphan images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ImageOff className="w-5 h-5" />
+          Image Cleanup
+        </CardTitle>
+        <CardDescription>Remove unused images from deleted products to free up storage.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            onClick={checkOrphans}
+            disabled={isLoading}
+            data-testid="button-check-orphans"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Check for Orphans
+          </Button>
+          {orphanCount !== null && (
+            <span className="text-sm text-muted-foreground">
+              {orphanCount} orphaned image{orphanCount === 1 ? "" : "s"} found • {inUseCount} in use
+            </span>
+          )}
+        </div>
+        {orphanCount !== null && orphanCount > 0 && (
+          <Button 
+            variant="destructive"
+            onClick={deleteOrphans}
+            disabled={isDeleting}
+            data-testid="button-delete-orphans"
+          >
+            {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+            Delete {orphanCount} Orphaned Image{orphanCount === 1 ? "" : "s"}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function Admin() {
@@ -708,6 +805,8 @@ export default function Admin() {
                   </div>
                 </CardContent>
               </Card>
+
+              <ImageCleanupCard />
             </>
           )}
 

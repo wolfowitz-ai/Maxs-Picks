@@ -49,7 +49,7 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
               alt={product.title}
               aspectRatio="square"
               showDots={allImages.length > 1}
-              showArrows={false}
+              showArrows={allImages.length > 1}
               className="cursor-pointer transition-transform duration-500 group-hover:scale-105"
             />
           </Link>

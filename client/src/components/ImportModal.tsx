@@ -544,13 +544,13 @@ export function ImportModal() {
               </div>
 
               <div className="space-y-2">
-                <Label>Price ($) *</Label>
+                <Label>Price ($)</Label>
                 <Input
                   type="number"
                   step="0.01"
                   value={stagedProduct.price}
                   onChange={(e) => updateStagedField("price", e.target.value)}
-                  required
+                  placeholder="Optional"
                 />
               </div>
 
