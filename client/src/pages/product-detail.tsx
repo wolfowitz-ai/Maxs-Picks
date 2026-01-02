@@ -145,9 +145,9 @@ export default function ProductDetail() {
               <ImageCarousel
                 images={allImages}
                 alt={product.title}
+                aspectRatio="none"
                 showDots={allImages.length > 1}
                 showArrows={allImages.length > 1}
-                maxHeight="100%"
                 className="h-full"
               />
             </div>

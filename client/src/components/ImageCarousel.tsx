@@ -8,7 +8,7 @@ interface ImageCarouselProps {
   className?: string;
   showArrows?: boolean;
   showDots?: boolean;
-  aspectRatio?: "square" | "4/3";
+  aspectRatio?: "square" | "4/3" | "none";
   maxHeight?: string;
 }
 
@@ -17,9 +17,14 @@ function generateResponsiveSrcSet(imageUrl: string): { srcSet: string; sizes: st
     return null;
   }
   
+  const simpleModifierPattern = /\._SL[0-9]{3,4}_\./i;
+  if (!simpleModifierPattern.test(imageUrl)) {
+    return null;
+  }
+  
   const sizes = [400, 600, 800, 1000, 1500];
   const srcSetParts = sizes.map(size => {
-    const modifiedUrl = imageUrl.replace(/\._[A-Z]{1,3}[_]?[A-Z]{0,3}[0-9]{2,4}_\./i, `._AC_SL${size}_.`);
+    const modifiedUrl = imageUrl.replace(simpleModifierPattern, `._SL${size}_.`);
     return `${modifiedUrl} ${size}w`;
   });
   
@@ -64,7 +69,12 @@ export function ImageCarousel({
   }, [emblaApi, onSelect]);
 
   const containerStyle = maxHeight ? { maxHeight } : undefined;
-  const aspectClass = aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]";
+  const aspectClass = aspectRatio === "square" 
+    ? "aspect-square" 
+    : aspectRatio === "4/3" 
+      ? "aspect-[4/3]" 
+      : "";
+  const useAspectRatio = aspectRatio !== "none";
 
   if (images.length === 0) {
     return (
@@ -81,7 +91,7 @@ export function ImageCarousel({
     const responsive = generateResponsiveSrcSet(images[0]);
     return (
       <div 
-        className={`overflow-hidden bg-gray-50 flex items-center justify-center ${className}`}
+        className={`overflow-hidden bg-gray-50 flex items-center justify-center ${useAspectRatio ? aspectClass : 'h-full'} ${className}`}
         style={containerStyle}
       >
         <img 
@@ -97,7 +107,7 @@ export function ImageCarousel({
   }
 
   return (
-    <div className={`relative group ${className}`} style={containerStyle}>
+    <div className={`relative group ${useAspectRatio ? aspectClass : 'h-full'} ${className}`} style={containerStyle}>
       <div className="overflow-hidden h-full" ref={emblaRef}>
         <div className="flex h-full">
           {images.map((image, index) => {
