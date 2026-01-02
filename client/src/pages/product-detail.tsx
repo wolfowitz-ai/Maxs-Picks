@@ -135,7 +135,7 @@ export default function ProductDetail() {
           className="bg-white rounded-2xl md:rounded-3xl shadow-lg overflow-hidden"
         >
           <div className="grid md:grid-cols-2 gap-0">
-            <div className="relative bg-gray-50 max-h-[50vh] md:max-h-none overflow-hidden">
+            <div className="relative bg-gray-50 h-[300px] md:h-[500px] overflow-hidden">
               {product.featured && (
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-amber-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-md">
                   <Bone className="w-4 h-4" />
@@ -145,10 +145,10 @@ export default function ProductDetail() {
               <ImageCarousel
                 images={allImages}
                 alt={product.title}
-                aspectRatio="4/3"
                 showDots={allImages.length > 1}
                 showArrows={allImages.length > 1}
-                className="md:min-h-[400px] max-h-[50vh] md:max-h-none"
+                maxHeight="100%"
+                className="h-full"
               />
             </div>
 

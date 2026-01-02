@@ -9,6 +9,24 @@ interface ImageCarouselProps {
   showArrows?: boolean;
   showDots?: boolean;
   aspectRatio?: "square" | "4/3";
+  maxHeight?: string;
+}
+
+function generateResponsiveSrcSet(imageUrl: string): { srcSet: string; sizes: string } | null {
+  if (!imageUrl.includes('media-amazon.com') && !imageUrl.includes('images-amazon.com')) {
+    return null;
+  }
+  
+  const sizes = [400, 600, 800, 1000, 1500];
+  const srcSetParts = sizes.map(size => {
+    const modifiedUrl = imageUrl.replace(/\._[A-Z]{1,3}[_]?[A-Z]{0,3}[0-9]{2,4}_\./i, `._AC_SL${size}_.`);
+    return `${modifiedUrl} ${size}w`;
+  });
+  
+  return {
+    srcSet: srcSetParts.join(', '),
+    sizes: '(max-width: 640px) 400px, (max-width: 1024px) 600px, 800px'
+  };
 }
 
 export function ImageCarousel({ 
@@ -17,7 +35,8 @@ export function ImageCarousel({
   className = "",
   showArrows = false,
   showDots = true,
-  aspectRatio = "square"
+  aspectRatio = "square",
+  maxHeight
 }: ImageCarouselProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -44,43 +63,62 @@ export function ImageCarousel({
     };
   }, [emblaApi, onSelect]);
 
+  const containerStyle = maxHeight ? { maxHeight } : undefined;
+  const aspectClass = aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]";
+
   if (images.length === 0) {
     return (
-      <div className={`bg-gray-100 flex items-center justify-center ${aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]"} ${className}`}>
+      <div 
+        className={`bg-gray-100 flex items-center justify-center ${aspectClass} ${className}`}
+        style={containerStyle}
+      >
         <span className="text-gray-400">No image</span>
       </div>
     );
   }
 
   if (images.length === 1) {
+    const responsive = generateResponsiveSrcSet(images[0]);
     return (
-      <div className={`overflow-hidden bg-gray-50 ${aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]"} ${className}`}>
+      <div 
+        className={`overflow-hidden bg-gray-50 flex items-center justify-center ${className}`}
+        style={containerStyle}
+      >
         <img 
           src={images[0]} 
           alt={alt} 
-          className="w-full h-full object-contain"
+          srcSet={responsive?.srcSet}
+          sizes={responsive?.sizes}
+          className="max-w-full max-h-full w-auto h-auto object-contain"
+          loading="lazy"
         />
       </div>
     );
   }
 
   return (
-    <div className={`relative group ${className}`}>
-      <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex">
-          {images.map((image, index) => (
-            <div 
-              key={index} 
-              className={`flex-[0_0_100%] min-w-0 bg-gray-50 ${aspectRatio === "square" ? "aspect-square" : "aspect-[4/3]"}`}
-            >
-              <img
-                src={image}
-                alt={`${alt} - Image ${index + 1}`}
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
-            </div>
-          ))}
+    <div className={`relative group ${className}`} style={containerStyle}>
+      <div className="overflow-hidden h-full" ref={emblaRef}>
+        <div className="flex h-full">
+          {images.map((image, index) => {
+            const responsive = generateResponsiveSrcSet(image);
+            return (
+              <div 
+                key={index} 
+                className="flex-[0_0_100%] min-w-0 bg-gray-50 flex items-center justify-center h-full"
+              >
+                <img
+                  src={image}
+                  alt={`${alt} - Image ${index + 1}`}
+                  srcSet={responsive?.srcSet}
+                  sizes={responsive?.sizes}
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
+                  draggable={false}
+                  loading="lazy"
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 
