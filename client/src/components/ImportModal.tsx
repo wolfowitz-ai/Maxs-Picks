@@ -210,7 +210,7 @@ export function ImportModal() {
     setIsSavingImage(true);
 
     try {
-      const imagesToProcess = stagedProduct.images.slice(0, 3);
+      const imagesToProcess = stagedProduct.images;
       const processedImages: string[] = [];
       let primaryImage = "";
 
