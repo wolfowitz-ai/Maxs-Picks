@@ -239,7 +239,7 @@ export default function Home() {
             </div>
             
             <div className="text-center mt-8">
-              <Link href="/products">
+              <Link href="/products" onClick={() => window.scrollTo(0, 0)}>
                 <Button variant="outline" className="rounded-full px-6 gap-2">
                   View All Products
                   <ArrowRight className="w-4 h-4" />
