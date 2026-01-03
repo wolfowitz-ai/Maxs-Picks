@@ -86,7 +86,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ imageCount: 3, saveImmediately: true }),
+        body: JSON.stringify({ imageCount: 5, saveImmediately: true }),
       });
       
       if (!response.ok) {

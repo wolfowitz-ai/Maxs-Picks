@@ -234,7 +234,7 @@ export default function Admin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ imageCount: 3 }),
+        body: JSON.stringify({ imageCount: 5 }),
       });
       
       if (!response.ok) {
@@ -247,7 +247,7 @@ export default function Admin() {
       // Open edit modal with reimported data
       // Use new images if available, otherwise keep existing
       const newImages = data.images && data.images.length > 0 
-        ? data.images.slice(0, 3) 
+        ? data.images.slice(0, 5) 
         : (product.images || []);
       
       setEditingProduct({
