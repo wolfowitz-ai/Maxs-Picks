@@ -3,11 +3,16 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import path from "path";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 const app = express();
 
-// Serve attached_assets as static files (for locally saved images)
+// Serve attached_assets as static files (for locally saved images - fallback for dev)
 app.use("/attached_assets", express.static(path.join(process.cwd(), "attached_assets")));
+
+// Register Object Storage routes for file uploads
+registerObjectStorageRoutes(app);
+
 const httpServer = createServer(app);
 
 declare module "http" {

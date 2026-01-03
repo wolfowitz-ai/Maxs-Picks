@@ -97,8 +97,15 @@ shared/           # Shared code between client/server
 #### Scraper Fallback (Optional)
 - `SCRAPER_API_KEY`: ScraperAPI key for reliable scraping when direct requests fail (free tier: 1000 requests/month at scraperapi.com)
 
-#### Local Image Storage
-When importing products, the "Save image locally" toggle downloads Amazon images and stores them in `attached_assets/product_images/`. This protects against Amazon image URLs expiring or being blocked.
+#### Image Storage (Object Storage)
+Product images are stored in Replit Object Storage for persistent storage across deployments. When importing products, images are processed with Sharp (resized to 1200x1200 max, converted to WebP) and uploaded to cloud storage. This ensures images persist even after the app is republished (unlike the ephemeral local filesystem).
+
+Environment variables (auto-configured):
+- `DEFAULT_OBJECT_STORAGE_BUCKET_ID`: The bucket ID for object storage
+- `PUBLIC_OBJECT_SEARCH_PATHS`: Paths for serving public assets
+- `PRIVATE_OBJECT_DIR`: Directory for uploaded files
+
+Images are served via `/objects/:path` route, which retrieves them from Object Storage.
 
 ### Key NPM Packages
 - `@tanstack/react-query`: Data fetching and caching

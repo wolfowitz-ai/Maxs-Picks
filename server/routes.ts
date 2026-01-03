@@ -7,11 +7,44 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { scrapeAmazonProduct, extractASINFromUrl } from "./scraper";
 import { fetchFromPAAPI, extractASIN, getAvailableMarketplaces } from "./amazon-api";
 import { spinText } from "./ai-spinner";
+import { ObjectStorageService } from "./replit_integrations/object_storage";
 import axios from "axios";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
 import sharp from "sharp";
+
+const objectStorageService = new ObjectStorageService();
+
+async function uploadToObjectStorage(
+  imageBuffer: Buffer,
+  filename: string,
+  contentType: string = "image/webp"
+): Promise<string> {
+  try {
+    // Get both the presigned upload URL and the object path for serving
+    const { uploadURL, objectPath } = await objectStorageService.getUploadUrlAndPath();
+    
+    // Upload the image to the presigned URL
+    const response = await fetch(uploadURL, {
+      method: "PUT",
+      body: imageBuffer,
+      headers: {
+        "Content-Type": contentType,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
+    
+    console.log(`Image uploaded to Object Storage: ${objectPath}`);
+    return objectPath;
+  } catch (error) {
+    console.error("Object Storage upload failed:", error);
+    throw error;
+  }
+}
 
 const spinRequestSchema = z.object({
   field: z.enum(["title", "description", "maxsTake"]),
@@ -124,7 +157,7 @@ export async function registerRoutes(
     }
   });
 
-  // Download, process, and save image locally with standardized sizing
+  // Download, process, and save image to Object Storage with standardized sizing
   app.post("/api/admin/save-image", isAuthenticated, async (req, res) => {
     try {
       const { imageUrl, filename } = req.body;
@@ -146,12 +179,7 @@ export async function registerRoutes(
         .substring(0, 50);
       
       const timestamp = Date.now();
-      const uploadDir = path.join(process.cwd(), "attached_assets", "product_images");
       
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
       let localPath: string;
       let thumbnailPath: string | undefined;
       let mainFilename: string;
@@ -159,39 +187,33 @@ export async function registerRoutes(
       try {
         // Process main image: resize to fit within 1200x1200, preserve aspect ratio, convert to WebP
         mainFilename = `${sanitizedFilename}_${timestamp}.webp`;
-        const mainFilePath = path.join(uploadDir, mainFilename);
         
-        await sharp(response.data)
+        const mainBuffer = await sharp(response.data)
           .resize(1200, 1200, {
             fit: "inside",
             withoutEnlargement: true,
           })
           .webp({ quality: 85 })
-          .toFile(mainFilePath);
+          .toBuffer();
 
         // Process thumbnail: resize to 400x400 (square for cards), convert to WebP
-        const thumbFilename = `${sanitizedFilename}_${timestamp}_thumb.webp`;
-        const thumbFilePath = path.join(uploadDir, thumbFilename);
-        
-        await sharp(response.data)
+        const thumbBuffer = await sharp(response.data)
           .resize(400, 400, {
             fit: "cover",
             position: "center",
           })
           .webp({ quality: 80 })
-          .toFile(thumbFilePath);
+          .toBuffer();
         
-        localPath = `/attached_assets/product_images/${mainFilename}`;
-        thumbnailPath = `/attached_assets/product_images/${thumbFilename}`;
-      } catch (sharpError) {
-        // Fallback: save original image if Sharp processing fails
-        console.warn("Sharp processing failed, saving original image:", sharpError);
+        // Upload both to Object Storage
+        localPath = await uploadToObjectStorage(mainBuffer, mainFilename, "image/webp");
+        thumbnailPath = await uploadToObjectStorage(thumbBuffer, `${sanitizedFilename}_${timestamp}_thumb.webp`, "image/webp");
+      } catch (processingError) {
+        // Fallback: upload original image if Sharp processing fails
+        console.warn("Sharp processing failed, uploading original image:", processingError);
         const contentType = response.headers["content-type"] || "image/jpeg";
-        const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-        mainFilename = `${sanitizedFilename}_${timestamp}.${ext}`;
-        const fallbackPath = path.join(uploadDir, mainFilename);
-        fs.writeFileSync(fallbackPath, response.data);
-        localPath = `/attached_assets/product_images/${mainFilename}`;
+        mainFilename = `${sanitizedFilename}_${timestamp}`;
+        localPath = await uploadToObjectStorage(response.data, mainFilename, contentType);
       }
       
       res.json({ 
@@ -222,38 +244,32 @@ export async function registerRoutes(
 
       const timestamp = Date.now();
       const sanitizedFilename = `upload_${timestamp}`;
-      const uploadDir = path.join(process.cwd(), "attached_assets", "product_images");
-      
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
 
       // Process main image: resize to fit within 1200x1200, preserve aspect ratio, convert to WebP
       const mainFilename = `${sanitizedFilename}.webp`;
-      const mainFilePath = path.join(uploadDir, mainFilename);
       
-      await sharp(imageBuffer)
+      const mainBuffer = await sharp(imageBuffer)
         .resize(1200, 1200, {
           fit: "inside",
           withoutEnlargement: true,
         })
         .webp({ quality: 85 })
-        .toFile(mainFilePath);
+        .toBuffer();
 
       // Process thumbnail: resize to 400x400 (square for cards)
       const thumbFilename = `${sanitizedFilename}_thumb.webp`;
-      const thumbFilePath = path.join(uploadDir, thumbFilename);
       
-      await sharp(imageBuffer)
+      const thumbBuffer = await sharp(imageBuffer)
         .resize(400, 400, {
           fit: "cover",
           position: "center",
         })
         .webp({ quality: 80 })
-        .toFile(thumbFilePath);
+        .toBuffer();
 
-      const localPath = `/attached_assets/product_images/${mainFilename}`;
-      const thumbnailPath = `/attached_assets/product_images/${thumbFilename}`;
+      // Upload both to Object Storage
+      const localPath = await uploadToObjectStorage(mainBuffer, mainFilename, "image/webp");
+      const thumbnailPath = await uploadToObjectStorage(thumbBuffer, thumbFilename, "image/webp");
       
       res.json({ 
         localPath, 
