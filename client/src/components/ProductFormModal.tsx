@@ -363,13 +363,23 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
 
             <div className="col-span-2 space-y-2">
               <div className="flex justify-between items-center">
-                <Label htmlFor="description">Description *</Label>
-                <SpinButton field="description" />
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="description">Description *</Label>
+                  <SpinButton field="description" />
+                </div>
+                <span className={`text-xs ${formData.description.length > 200 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                  {formData.description.length}/200
+                </span>
               </div>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  if (newValue.length <= 200 || newValue.length < formData.description.length) {
+                    setFormData({ ...formData, description: newValue.slice(0, 200) });
+                  }
+                }}
                 placeholder="Describe the product..."
                 rows={2}
                 required
