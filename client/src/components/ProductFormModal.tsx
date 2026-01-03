@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories, useCreateProduct, useUpdateProduct } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star, Sparkles, Upload, Image as ImageIcon } from "lucide-react";
+import { Loader2, Star, Sparkles, Upload, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useMutation } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
@@ -50,6 +52,7 @@ interface ProductFormModalProps {
 export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalProps) {
   const isEditing = !!product;
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: categories } = useCategories();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -69,8 +72,50 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
   });
   
   const [isUploading, setIsUploading] = useState(false);
+  const [isReimportingImages, setIsReimportingImages] = useState(false);
+  const [showReimportConfirm, setShowReimportConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  const handleReimportImages = async () => {
+    if (!product?.id || !formData.asin) return;
+    
+    setIsReimportingImages(true);
+    try {
+      const response = await fetch(`/api/admin/reimport-images/${product.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ imageCount: 3, saveImmediately: true }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to reimport images");
+      }
+      
+      const data = await response.json();
+      
+      // Immediately update modal state with new images from API response
+      setFormData(prev => ({ ...prev, allImages: data.images }));
+      
+      // Await cache invalidation so all product views refresh
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      
+      toast({
+        title: "Images updated!",
+        description: `Successfully reimported ${data.images.length} image(s) from Amazon.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reimport images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReimportingImages(false);
+    }
+  };
 
   useEffect(() => {
     if (product) {
@@ -340,6 +385,7 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
   }, [addImageToForm, formData.title, toast]);
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -481,7 +527,27 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
             </div>
 
             <div className="col-span-2 space-y-2">
-              <Label>Product Images *</Label>
+              <div className="flex items-center justify-between">
+                <Label>Product Images *</Label>
+                {isEditing && formData.asin && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowReimportConfirm(true)}
+                    disabled={isReimportingImages}
+                    className="gap-1.5"
+                    data-testid="button-reimport-images"
+                  >
+                    {isReimportingImages ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    )}
+                    {isReimportingImages ? "Reimporting..." : "Reimport from Amazon"}
+                  </Button>
+                )}
+              </div>
               <div className="space-y-3">
                 {formData.allImages.length > 0 && (
                   <SortableImageList
@@ -626,5 +692,28 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation dialog for image reimport */}
+    <AlertDialog open={showReimportConfirm} onOpenChange={setShowReimportConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Reimport Images from Amazon?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will replace the current images with fresh ones from Amazon. 
+            Your existing images will be permanently removed.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => {
+            setShowReimportConfirm(false);
+            handleReimportImages();
+          }}>
+            Reimport Images
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

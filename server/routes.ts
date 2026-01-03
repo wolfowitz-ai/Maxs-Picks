@@ -157,6 +157,113 @@ export async function registerRoutes(
     }
   });
 
+  // Reimport ONLY images from Amazon using stored ASIN (preserves other product data)
+  // This fetches Amazon image URLs for preview - images are only downloaded when user saves
+  app.post("/api/admin/reimport-images/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { imageCount = 3, saveImmediately = false } = req.body;
+      
+      const product = await storage.getProductById(id);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (!product.asin) {
+        return res.status(400).json({ error: "Product does not have an ASIN. Cannot reimport images." });
+      }
+      
+      // Scrape fresh data using the ASIN
+      const scrapedData = await scrapeAmazonProduct(product.asin, imageCount);
+      
+      if (!scrapedData.images || scrapedData.images.length === 0) {
+        return res.status(400).json({ error: "No images found on Amazon for this product." });
+      }
+      
+      // STEP 1: Download all images to memory first (no storage writes yet)
+      const downloadedBuffers: Buffer[] = [];
+      
+      for (let i = 0; i < scrapedData.images.length; i++) {
+        const imageUrl = scrapedData.images[i];
+        try {
+          const response = await axios.get(imageUrl, {
+            responseType: "arraybuffer",
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            },
+            timeout: 30000,
+          });
+          
+          const mainBuffer = await sharp(response.data)
+            .resize(1200, 1200, {
+              fit: "inside",
+              withoutEnlargement: true,
+            })
+            .webp({ quality: 85 })
+            .toBuffer();
+          
+          downloadedBuffers.push(mainBuffer);
+        } catch (imgError) {
+          console.error("Error downloading image:", imgError);
+          return res.status(500).json({ 
+            error: `Failed to download image ${i + 1} of ${scrapedData.images.length}. Please try again.`,
+          });
+        }
+      }
+      
+      // STEP 2: All downloads succeeded - now upload to storage with rollback on failure
+      const savedImages: string[] = [];
+      
+      try {
+        for (let i = 0; i < downloadedBuffers.length; i++) {
+          const timestamp = Date.now() + i;
+          const sanitizedFilename = `product_${product.asin}_${timestamp}`;
+          const savedPath = await uploadToObjectStorage(downloadedBuffers[i], `${sanitizedFilename}.webp`, "image/webp");
+          savedImages.push(savedPath);
+        }
+      } catch (uploadError) {
+        // Rollback: delete any uploaded images on failure
+        console.error("Upload failed, rolling back:", uploadError);
+        for (const path of savedImages) {
+          try {
+            await objectStorageService.deleteObjectEntity(path);
+          } catch (deleteError) {
+            console.error("Failed to delete orphaned image:", path, deleteError);
+          }
+        }
+        return res.status(500).json({ error: "Failed to upload images. Please try again." });
+      }
+      
+      // STEP 3: Update the product with new images (with rollback on failure)
+      try {
+        await storage.updateProduct(id, {
+          image: savedImages[0],
+          images: savedImages.slice(1),
+        });
+      } catch (dbError) {
+        // Database update failed - rollback uploaded images
+        console.error("Database update failed, rolling back uploaded images:", dbError);
+        for (const path of savedImages) {
+          try {
+            await objectStorageService.deleteObjectEntity(path);
+          } catch (deleteError) {
+            console.error("Failed to delete image during rollback:", path, deleteError);
+          }
+        }
+        return res.status(500).json({ error: "Failed to save product. Please try again." });
+      }
+      
+      res.json({
+        success: true,
+        images: savedImages,
+        productId: id,
+      });
+    } catch (error) {
+      console.error("Error reimporting images:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to reimport images" });
+    }
+  });
+
   // Download, process, and save image to Object Storage with standardized sizing
   app.post("/api/admin/save-image", isAuthenticated, async (req, res) => {
     try {

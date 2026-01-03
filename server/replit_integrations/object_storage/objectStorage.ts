@@ -236,6 +236,30 @@ export class ObjectStorageService {
     return `/objects/${entityId}`;
   }
 
+  // Deletes an object entity by its serving path (e.g., /objects/uploads/uuid)
+  // Also handles raw Google Storage URLs and normalizes them first
+  async deleteObjectEntity(objectPath: string): Promise<void> {
+    try {
+      // Normalize the path first to handle both /objects/... and raw URLs
+      const normalizedPath = this.normalizeObjectEntityPath(objectPath);
+      
+      // If it doesn't start with /objects/, it's an external URL we can't delete
+      if (!normalizedPath.startsWith("/objects/")) {
+        console.warn("Cannot delete external URL:", objectPath);
+        return;
+      }
+      
+      const objectFile = await this.getObjectEntityFile(normalizedPath);
+      await objectFile.delete();
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        // Already deleted or doesn't exist - that's fine
+        return;
+      }
+      throw error;
+    }
+  }
+
   // Tries to set the ACL policy for the object entity and return the normalized path.
   async trySetObjectEntityAclPolicy(
     rawPath: string,
