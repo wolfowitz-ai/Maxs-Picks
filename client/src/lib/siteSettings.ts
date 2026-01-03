@@ -5,7 +5,7 @@ export interface SiteSettings {
 
 const DEFAULT_SETTINGS: SiteSettings = {
   siteTitle: "Max's Top Picks",
-  instagramHandle: "@MaxTheMaltipoo",
+  instagramHandle: "@MaxTheBlue21",
 };
 
 export function getSiteSettings(): SiteSettings {
