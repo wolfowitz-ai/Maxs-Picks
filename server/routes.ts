@@ -89,6 +89,41 @@ export async function registerRoutes(
     }
   });
 
+  // Reimport product data from Amazon using stored ASIN
+  app.post("/api/admin/reimport/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { imageCount = 3 } = req.body;
+      
+      const product = await storage.getProductById(id);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (!product.asin) {
+        return res.status(400).json({ error: "Product does not have an ASIN. Cannot reimport." });
+      }
+      
+      // Try to scrape fresh data using the ASIN
+      const scrapedData = await scrapeAmazonProduct(product.asin, imageCount);
+      
+      // Normalize the data to match expected types
+      res.json({
+        title: scrapedData.title || "",
+        description: scrapedData.description || "",
+        price: scrapedData.price || "",
+        rating: scrapedData.rating || "4.5",
+        reviews: typeof scrapedData.reviews === "number" ? scrapedData.reviews : 0,
+        images: scrapedData.images || [],
+        amazonUrl: scrapedData.amazonUrl || `https://www.amazon.com/dp/${product.asin}`,
+        asin: product.asin,
+      });
+    } catch (error) {
+      console.error("Error reimporting product:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to reimport product data" });
+    }
+  });
+
   // Download, process, and save image locally with standardized sizing
   app.post("/api/admin/save-image", isAuthenticated, async (req, res) => {
     try {

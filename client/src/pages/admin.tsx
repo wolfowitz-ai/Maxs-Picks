@@ -12,7 +12,7 @@ import { ImportModal } from "@/components/ImportModal";
 import { ProductFormModal } from "@/components/ProductFormModal";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home, Star, Menu, X, Check, ImageOff } from "lucide-react";
+import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home, Star, Menu, X, Check, ImageOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { Product } from "@shared/schema";
@@ -174,6 +174,7 @@ export default function Admin() {
   const updateProduct = useUpdateProduct();
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [reimportingProductId, setReimportingProductId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -215,6 +216,66 @@ export default function Admin() {
         },
       }
     );
+  };
+
+  const handleReimport = async (product: Product) => {
+    if (!product.asin) {
+      toast({
+        title: "Cannot reimport",
+        description: "This product doesn't have an ASIN. Only imported products can be reimported.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setReimportingProductId(product.id);
+    try {
+      const response = await fetch(`/api/admin/reimport/${product.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ imageCount: 3 }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to reimport");
+      }
+      
+      const data = await response.json();
+      
+      // Open edit modal with reimported data
+      // Use new images if available, otherwise keep existing
+      const newImages = data.images && data.images.length > 0 
+        ? data.images.slice(0, 3) 
+        : (product.images || []);
+      
+      setEditingProduct({
+        ...product,
+        title: data.title || product.title,
+        description: data.description || product.description,
+        price: data.price || product.price,
+        rating: data.rating || product.rating,
+        reviews: data.reviews ?? product.reviews,
+        amazonUrl: data.amazonUrl || product.amazonUrl,
+        image: newImages[0] || product.image,
+        images: newImages,
+      });
+      setIsProductModalOpen(true);
+      
+      toast({
+        title: "Product data reimported",
+        description: `Found ${data.images?.length || 0} images. Review the updated data and save changes.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Reimport failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setReimportingProductId(null);
+    }
   };
 
   const handleAddCategory = () => {
@@ -482,6 +543,23 @@ export default function Admin() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-1 md:gap-2">
+                                  {product.asin && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8 text-gray-500 hover:text-green-600"
+                                      onClick={() => handleReimport(product)}
+                                      disabled={reimportingProductId === product.id}
+                                      title="Reimport from Amazon"
+                                      data-testid={`button-reimport-${product.id}`}
+                                    >
+                                      {reimportingProductId === product.id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  )}
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
