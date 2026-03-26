@@ -61,6 +61,15 @@ shared/           # Shared code between client/server
   schema.ts       # Drizzle database schema
 ```
 
+### Local Development Support
+The app can run fully outside Replit. Key adaptations:
+- **Image Storage**: `LOCAL_STORAGE=true` env var switches from Google Cloud Object Storage to local filesystem (`local-uploads/`)
+- **Auth**: Password-based admin auth works standalone; Replit OIDC auth loads only when `REPL_ID` is present
+- **Vite Plugins**: Replit-specific plugins (error overlay, cartographer, dev banner) only load on Replit
+- **Storage Factory**: `server/storage-factory.ts` provides the correct storage adapter based on environment
+- **Setup**: `docker-compose.yml` for PostgreSQL, `.env.example` for config, `scripts/setup-local.sh` for automated setup
+- **Guide**: See `LOCAL_SETUP.md` for full local development instructions
+
 ### Build System
 - Development: Vite dev server with HMR for frontend, tsx for backend
 - Production: Vite builds static assets to `dist/public`, esbuild bundles server to `dist/index.cjs`
@@ -79,6 +88,7 @@ shared/           # Shared code between client/server
 ### Environment Variables
 - `DATABASE_URL`: PostgreSQL connection string (required)
 - `ADMIN_PASSWORD`: Admin panel password (optional, defaults to "max123" in development)
+- `LOCAL_STORAGE`: Set to `true` for local filesystem image storage instead of cloud Object Storage (for local dev)
 
 #### Amazon PA-API Import (Optional)
 - `AMAZON_ACCESS_KEY`: Amazon PA-API access key from Associates Central

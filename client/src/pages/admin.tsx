@@ -15,6 +15,7 @@ import { Slider } from "@/components/ui/slider";
 import { PawPrint, Plus, Pencil, Trash2, Package, Settings, Loader2, LogOut, Tags, Home, Star, Menu, X, Check, ImageOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useAuth as usePasswordAuth } from "@/lib/auth";
 import type { Product } from "@shared/schema";
 import {
   AlertDialog,
@@ -163,7 +164,9 @@ export default function Admin() {
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(getSiteSettings);
   
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { isAuthenticated: replitAuth, isLoading: authLoading, logout: replitLogout } = useAuth();
+  const { isAuthenticated: passwordAuth, logout: passwordLogout } = usePasswordAuth();
+  const isAuthenticated = replitAuth || passwordAuth;
   const [, setLocation] = useLocation();
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -178,7 +181,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      window.location.href = "/api/login";
+      setLocation("/admin-login");
     }
   }, [isAuthenticated, authLoading]);
 
@@ -191,7 +194,12 @@ export default function Admin() {
   }
 
   const handleLogout = () => {
-    logout();
+    if (passwordAuth) {
+      passwordLogout();
+      setLocation("/admin-login");
+      return;
+    }
+    replitLogout();
   };
 
   const handleAddProduct = () => {

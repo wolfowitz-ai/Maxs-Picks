@@ -3,15 +3,10 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import path from "path";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 const app = express();
 
-// Serve attached_assets as static files (for locally saved images - fallback for dev)
 app.use("/attached_assets", express.static(path.join(process.cwd(), "attached_assets")));
-
-// Register Object Storage routes for file uploads
-registerObjectStorageRoutes(app);
 
 const httpServer = createServer(app);
 
@@ -69,6 +64,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  if (process.env.LOCAL_STORAGE === "true") {
+    const { registerLocalObjectStorageRoutes } = await import("./local-storage-adapter");
+    registerLocalObjectStorageRoutes(app);
+  } else {
+    const { registerObjectStorageRoutes } = await import("./replit_integrations/object_storage");
+    registerObjectStorageRoutes(app);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

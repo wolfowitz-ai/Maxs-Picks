@@ -3,18 +3,18 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProductSchema, insertCategorySchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { checkAdminAuth } from "./auth";
 import { scrapeAmazonProduct, extractASINFromUrl } from "./scraper";
 import { fetchFromPAAPI, extractASIN, getAvailableMarketplaces } from "./amazon-api";
 import { spinText } from "./ai-spinner";
-import { ObjectStorageService } from "./replit_integrations/object_storage";
+import { initObjectStorageAdapter, getObjectStorageAdapter, type IObjectStorageAdapter } from "./storage-factory";
 import axios from "axios";
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
 import sharp from "sharp";
 
-const objectStorageService = new ObjectStorageService();
+let objectStorageAdapter: IObjectStorageAdapter;
 
 async function uploadToObjectStorage(
   imageBuffer: Buffer,
@@ -22,10 +22,16 @@ async function uploadToObjectStorage(
   contentType: string = "image/webp"
 ): Promise<string> {
   try {
-    // Get both the presigned upload URL and the object path for serving
-    const { uploadURL, objectPath } = await objectStorageService.getUploadUrlAndPath();
-    
-    // Upload the image to the presigned URL
+    const { uploadURL, objectPath } = await objectStorageAdapter.getUploadUrlAndPath();
+
+    if (uploadURL.startsWith("__LOCAL__:") || uploadURL.includes("/api/uploads/direct/")) {
+      const { LocalObjectStorageService } = await import("./local-storage-adapter");
+      const localService = new LocalObjectStorageService();
+      await localService.saveFileLocally(objectPath, imageBuffer, contentType);
+      console.log(`Image saved locally: ${objectPath}`);
+      return objectPath;
+    }
+
     const response = await fetch(uploadURL, {
       method: "PUT",
       body: imageBuffer,
@@ -33,11 +39,11 @@ async function uploadToObjectStorage(
         "Content-Type": contentType,
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`Upload failed with status ${response.status}`);
     }
-    
+
     console.log(`Image uploaded to Object Storage: ${objectPath}`);
     return objectPath;
   } catch (error) {
@@ -62,16 +68,35 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  await setupAuth(app);
-  registerAuthRoutes(app);
+  objectStorageAdapter = await initObjectStorageAdapter();
+  
+  const isLocalDev = process.env.LOCAL_STORAGE === "true";
+  
+  if (!isLocalDev) {
+    const { setupAuth, registerAuthRoutes } = await import("./replit_integrations/auth");
+    await setupAuth(app);
+    registerAuthRoutes(app);
+  }
+
+  app.post("/api/admin/login", (req, res) => {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: "Password is required" });
+    }
+    const { verifyAdminPassword } = require("./auth");
+    if (verifyAdminPassword(password)) {
+      return res.json({ token: password });
+    }
+    return res.status(401).json({ error: "Invalid password" });
+  });
 
   // Get available marketplaces for PA-API
-  app.get("/api/admin/marketplaces", isAuthenticated, (req, res) => {
+  app.get("/api/admin/marketplaces", checkAdminAuth, (req, res) => {
     res.json(getAvailableMarketplaces());
   });
 
   // Amazon PA-API import (official API)
-  app.post("/api/admin/import/pa-api", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/import/pa-api", checkAdminAuth, async (req, res) => {
     try {
       const { url, imageCount = 1, marketplace = "US" } = req.body;
       
@@ -89,7 +114,7 @@ export async function registerRoutes(
   });
 
   // Amazon scraper import (fallback method)
-  app.post("/api/admin/import/scrape", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/import/scrape", checkAdminAuth, async (req, res) => {
     try {
       const { url, imageCount = 1 } = req.body;
       
@@ -106,7 +131,7 @@ export async function registerRoutes(
   });
 
   // Legacy scrape endpoint (for backward compatibility)
-  app.post("/api/admin/scrape", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/scrape", checkAdminAuth, async (req, res) => {
     try {
       const { url } = req.body;
       
@@ -123,7 +148,7 @@ export async function registerRoutes(
   });
 
   // Reimport product data from Amazon using stored ASIN
-  app.post("/api/admin/reimport/:id", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/reimport/:id", checkAdminAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { imageCount = 3 } = req.body;
@@ -159,7 +184,7 @@ export async function registerRoutes(
 
   // Reimport ONLY images from Amazon using stored ASIN (preserves other product data)
   // This fetches Amazon image URLs for preview - images are only downloaded when user saves
-  app.post("/api/admin/reimport-images/:id", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/reimport-images/:id", checkAdminAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { imageCount = 3, saveImmediately = false } = req.body;
@@ -226,7 +251,7 @@ export async function registerRoutes(
         console.error("Upload failed, rolling back:", uploadError);
         for (const path of savedImages) {
           try {
-            await objectStorageService.deleteObjectEntity(path);
+            await objectStorageAdapter.deleteObjectEntity(path);
           } catch (deleteError) {
             console.error("Failed to delete orphaned image:", path, deleteError);
           }
@@ -245,7 +270,7 @@ export async function registerRoutes(
         console.error("Database update failed, rolling back uploaded images:", dbError);
         for (const path of savedImages) {
           try {
-            await objectStorageService.deleteObjectEntity(path);
+            await objectStorageAdapter.deleteObjectEntity(path);
           } catch (deleteError) {
             console.error("Failed to delete image during rollback:", path, deleteError);
           }
@@ -265,7 +290,7 @@ export async function registerRoutes(
   });
 
   // Download, process, and save image to Object Storage with standardized sizing
-  app.post("/api/admin/save-image", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/save-image", checkAdminAuth, async (req, res) => {
     try {
       const { imageUrl, filename } = req.body;
       
@@ -335,7 +360,7 @@ export async function registerRoutes(
   });
 
   // File upload endpoint for direct image uploads
-  app.post("/api/admin/upload-image", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/upload-image", checkAdminAuth, async (req, res) => {
     try {
       const chunks: Buffer[] = [];
       
@@ -390,7 +415,7 @@ export async function registerRoutes(
   });
   
   // AI Text Spinner endpoint
-  app.post("/api/admin/spin-text", isAuthenticated, async (req, res) => {
+  app.post("/api/admin/spin-text", checkAdminAuth, async (req, res) => {
     try {
       const validationResult = spinRequestSchema.safeParse(req.body);
       
@@ -438,7 +463,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/products", isAuthenticated, async (req, res) => {
+  app.post("/api/products", checkAdminAuth, async (req, res) => {
     try {
       const validationResult = insertProductSchema.safeParse(req.body);
       
@@ -466,7 +491,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/products/:id", isAuthenticated, async (req, res) => {
+  app.patch("/api/products/:id", checkAdminAuth, async (req, res) => {
     try {
       const partialSchema = insertProductSchema.partial();
       const validationResult = partialSchema.safeParse(req.body);
@@ -487,7 +512,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/products/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/products/:id", checkAdminAuth, async (req, res) => {
     try {
       const deleted = await storage.deleteProduct(req.params.id);
       if (!deleted) {
@@ -511,7 +536,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/categories", isAuthenticated, async (req, res) => {
+  app.post("/api/categories", checkAdminAuth, async (req, res) => {
     try {
       const validationResult = insertCategorySchema.safeParse(req.body);
       
@@ -528,7 +553,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/categories/:id", isAuthenticated, async (req, res) => {
+  app.patch("/api/categories/:id", checkAdminAuth, async (req, res) => {
     try {
       const partialSchema = insertCategorySchema.partial();
       const validationResult = partialSchema.safeParse(req.body);
@@ -549,7 +574,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/categories/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/categories/:id", checkAdminAuth, async (req, res) => {
     try {
       const deleted = await storage.deleteCategory(req.params.id);
       if (!deleted) {
@@ -562,7 +587,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/orphan-images", isAuthenticated, async (req, res) => {
+  app.get("/api/admin/orphan-images", checkAdminAuth, async (req, res) => {
     try {
       const imageDir = path.join(process.cwd(), "attached_assets", "product_images");
       
@@ -603,7 +628,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/orphan-images", isAuthenticated, async (req, res) => {
+  app.delete("/api/admin/orphan-images", checkAdminAuth, async (req, res) => {
     try {
       const imageDir = path.join(process.cwd(), "attached_assets", "product_images");
       
