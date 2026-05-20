@@ -66,6 +66,7 @@ function ImageCleanupCard() {
     setIsLoading(true);
     try {
       const response = await fetch("/api/admin/orphan-images", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("adminToken") ?? ""}` },
         credentials: "include",
       });
       if (response.ok) {
@@ -89,6 +90,7 @@ function ImageCleanupCard() {
     try {
       const response = await fetch("/api/admin/orphan-images", {
         method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("adminToken") ?? ""}` },
         credentials: "include",
       });
       if (response.ok) {
@@ -240,7 +242,10 @@ export default function Admin() {
     try {
       const response = await fetch(`/api/admin/reimport/${product.id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken") ?? ""}`,
+        },
         credentials: "include",
         body: JSON.stringify({ imageCount: 5 }),
       });

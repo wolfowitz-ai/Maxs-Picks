@@ -27,7 +27,10 @@ interface SpinRequest {
 async function spinTextApi(request: SpinRequest): Promise<string> {
   const response = await fetch("/api/admin/spin-text", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("adminToken") ?? ""}`,
+    },
     credentials: "include",
     body: JSON.stringify(request),
   });

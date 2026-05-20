@@ -29,7 +29,10 @@ interface SpinRequest {
 async function spinTextApi(request: SpinRequest): Promise<string> {
   const response = await fetch("/api/admin/spin-text", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("adminToken") ?? ""}`,
+    },
     credentials: "include",
     body: JSON.stringify(request),
   });
@@ -84,7 +87,10 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
     try {
       const response = await fetch(`/api/admin/reimport-images/${product.id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken") ?? ""}`,
+        },
         credentials: "include",
         body: JSON.stringify({ imageCount: 5, saveImmediately: true }),
       });
@@ -325,7 +331,10 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
       const arrayBuffer = await file.arrayBuffer();
       const response = await fetch("/api/admin/upload-image", {
         method: "POST",
-        headers: { "Content-Type": "application/octet-stream" },
+        headers: {
+          "Content-Type": "application/octet-stream",
+          Authorization: `Bearer ${localStorage.getItem("adminToken") ?? ""}`,
+        },
         credentials: "include",
         body: arrayBuffer,
       });
@@ -357,7 +366,10 @@ export function ProductFormModal({ isOpen, onClose, product }: ProductFormModalP
     try {
       const response = await fetch("/api/admin/save-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("adminToken") ?? ""}`,
+        },
         credentials: "include",
         body: JSON.stringify({ imageUrl: url, filename: formData.title || "product" }),
       });
