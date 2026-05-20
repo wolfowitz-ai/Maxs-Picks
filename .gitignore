@@ -8,6 +8,4 @@ vite.config.ts.*
 .env.local
 .env.*.local
 local-uploads
-api/index.js
-api/package.json
 .vercel
