@@ -3,11 +3,6 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist/public",
   "framework": null,
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 60
-    }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/objects/(.*)", "destination": "/api" },
