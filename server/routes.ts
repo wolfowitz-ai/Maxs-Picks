@@ -1,5 +1,4 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProductSchema, insertCategorySchema } from "@shared/schema";
 import { fromError } from "zod-validation-error";
@@ -22,6 +21,15 @@ async function uploadToObjectStorage(
   contentType: string = "image/webp"
 ): Promise<string> {
   try {
+    if (typeof objectStorageAdapter.putBuffer === "function") {
+      const url = await objectStorageAdapter.putBuffer(imageBuffer, {
+        contentType,
+        filename,
+      });
+      console.log(`Image uploaded: ${url}`);
+      return url;
+    }
+
     const { uploadURL, objectPath } = await objectStorageAdapter.getUploadUrlAndPath();
 
     if (uploadURL.startsWith("__LOCAL__:") || uploadURL.includes("/api/uploads/direct/")) {
@@ -63,16 +71,15 @@ const spinRequestSchema = z.object({
   }),
 });
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
-  
+export async function registerRoutes(app: Express): Promise<void> {
   objectStorageAdapter = await initObjectStorageAdapter();
-  
+
   const isLocalDev = process.env.LOCAL_STORAGE === "true";
-  
-  if (!isLocalDev) {
+  const isVercel = !!process.env.VERCEL;
+
+  // Replit OIDC auth only runs when we're on Replit. Locally we use
+  // password-only; on Vercel we also use password-only.
+  if (!isLocalDev && !isVercel) {
     const { setupAuth, registerAuthRoutes } = await import("./replit_integrations/auth");
     await setupAuth(app);
     registerAuthRoutes(app);
@@ -674,6 +681,4 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to delete orphan images" });
     }
   });
-
-  return httpServer;
 }
