@@ -1,16 +1,19 @@
 import OpenAI from "openai";
 
+// Official Chat Completions endpoint. Do not override this with a custom base URL.
+const OPENAI_API_BASE_URL = "https://api.openai.com/v1";
+
 let openaiClient: OpenAI | null = null;
 
 function getOpenAI(): OpenAI {
   if (!openaiClient) {
-    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error("OpenAI API key not configured. Please set up AI Integrations or add OPENAI_API_KEY.");
+      throw new Error("OpenAI API key not configured. Set OPENAI_API_KEY.");
     }
-    openaiClient = new OpenAI({ 
+    openaiClient = new OpenAI({
       apiKey,
-      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      baseURL: OPENAI_API_BASE_URL,
     });
   }
   return openaiClient;
@@ -78,13 +81,16 @@ export async function spinText(request: SpinRequest): Promise<string> {
   const userPrompt = buildUserPrompt(request);
   
   const response = await getOpenAI().chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-6.1-sol",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
     ],
-    max_tokens: 300,
-    temperature: 0.8,
+    // Smallest effort this model accepts. none and minimal are rejected.
+    // Temperature is omitted: this model rejects it unless reasoning effort is none.
+    reasoning_effort: "low",
+    // Includes reasoning tokens. 1024 leaves room for low-effort reasoning and still returns a short title, description, or Max's Take.
+    max_completion_tokens: 1024,
   });
   
   let text = response.choices[0]?.message?.content?.trim() || "";

@@ -66,7 +66,7 @@ In the project's **Settings → Environment Variables**, add these to **Producti
 | Variable | Value |
 |---|---|
 | `ADMIN_PASSWORD` | a strong password you'll use to log into `/admin-login` |
-| `OPENAI_API_KEY` | _(optional — only needed for "spin text" buttons)_ |
+| `OPENAI_API_KEY` | _(optional — official OpenAI API key for the spin-text buttons)_ |
 | `SCRAPER_API_KEY` | _(optional — fallback Amazon scraper)_ |
 | `AMAZON_ACCESS_KEY` / `AMAZON_SECRET_KEY` / `AMAZON_PARTNER_TAG` | _(optional — official PA-API import)_ |
 
