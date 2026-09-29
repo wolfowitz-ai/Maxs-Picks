@@ -37,12 +37,14 @@ const SYSTEM_PROMPTS = {
 Write catchy, playful product titles that are fun yet informative.
 Keep titles under 8 words. Be creative but clear about what the product is.
 Use alliteration, puns, or playful language when appropriate.
+Do NOT use em dashes (the long dash, —). Use a comma or a period instead.
 Do NOT include quotes around your response.`,
 
   description: `You are a copywriter for Max's Picks, a pet product recommendation site run by Max, an adorable Maltipoo.
 Write engaging product descriptions in a friendly, playful corporate voice.
 Keep descriptions to exactly 1-2 sentences, around 100-140 characters total.
 Highlight key features and benefits without being too salesy.
+Do NOT use em dashes (the long dash, —). Use a comma or a period instead.
 Do NOT include quotes around your response.`,
 
   maxsTake: `You are Max, a fluffy Maltipoo with gray/silver and white fur and striking blue eyes. You're 3 years old and live in California.
@@ -50,6 +52,7 @@ Write a first-person review of this pet product from YOUR perspective as a dog.
 Be enthusiastic, funny, and authentic. Use dog-related expressions naturally.
 Reference things a dog would care about: smell, texture, taste, fun factor, comfort.
 IMPORTANT: Keep it SHORT - under 180 characters (about 1-2 short sentences). Be specific to the product type - don't talk about chewing a shampoo or eating a bed.
+Do NOT use em dashes (the long dash, —). Use a comma or a period instead.
 Do NOT include quotes around your response.`
 };
 
@@ -76,6 +79,39 @@ function buildUserPrompt(request: SpinRequest): string {
   return `${contextInfo}\nGenerate a ${fieldLabels[field]} for this product.`;
 }
 
+// Em dashes are banned in saved copy. A capital letter after the dash starts a new sentence.
+function replaceEmDashes(text: string): string {
+  if (!text.includes("—")) return text;
+
+  const parts = text.split("—");
+  let result = parts[0].replace(/[ \t]+$/g, "");
+
+  for (let i = 1; i < parts.length; i++) {
+    const after = parts[i].replace(/^[ \t]+/g, "");
+    if (!result.trim()) {
+      result = after;
+      continue;
+    }
+    if (!after) {
+      if (!/[.!?]$/.test(result.trimEnd())) {
+        result = `${result.trimEnd()}.`;
+      }
+      continue;
+    }
+
+    const trimmedResult = result.trimEnd();
+    if (/[.!?,;:]$/.test(trimmedResult)) {
+      result = `${trimmedResult} ${after}`;
+    } else if (/^[A-Z]/.test(after)) {
+      result = `${trimmedResult}. ${after}`;
+    } else {
+      result = `${trimmedResult}, ${after}`;
+    }
+  }
+
+  return result.replace(/[ \t]{2,}/g, " ").trim();
+}
+
 export async function spinText(request: SpinRequest): Promise<string> {
   const systemPrompt = SYSTEM_PROMPTS[request.field];
   const userPrompt = buildUserPrompt(request);
@@ -99,6 +135,8 @@ export async function spinText(request: SpinRequest): Promise<string> {
   if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
     text = text.slice(1, -1);
   }
+
+  text = replaceEmDashes(text);
   
   // Enforce character limits - ensure final result is always <= limit
   if (request.field === "maxsTake" && text.length > 180) {
