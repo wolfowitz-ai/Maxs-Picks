@@ -111,7 +111,7 @@ The admin panel is where you add, edit, and import products.
 These features work out of the box but need API keys for full functionality. Add them to your `.env` file if you want them:
 
 ### AI-Generated Text
-Set `OPENAI_API_KEY` to your OpenAI API key. This powers the "spin text" buttons in the admin panel that generate product titles, descriptions, and Max's Take reviews.
+Set `OPENAI_API_KEY` to your OpenAI API key. This powers the "spin text" buttons in the admin panel that generate product titles, descriptions, and Max's Take reviews. The spinner calls the official OpenAI API with that key.
 
 ### Amazon Product Scraping
 Set `SCRAPER_API_KEY` to a [ScraperAPI](https://www.scraperapi.com) key (free tier: 1,000 requests/month). This helps reliably scrape product data from Amazon URLs.

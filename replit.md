@@ -89,6 +89,7 @@ The app can run fully outside Replit. Key adaptations:
 - `DATABASE_URL`: PostgreSQL connection string (required)
 - `ADMIN_PASSWORD`: Admin panel password (optional, defaults to "max123" in development)
 - `LOCAL_STORAGE`: Set to `true` for local filesystem image storage instead of cloud Object Storage (for local dev)
+- `OPENAI_API_KEY`: OpenAI API key for the magic-description spinner (product titles, descriptions, and Max's Take). The spinner calls the official OpenAI API with this key.
 
 #### Amazon PA-API Import (Optional)
 - `AMAZON_ACCESS_KEY`: Amazon PA-API access key from Associates Central
