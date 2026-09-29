@@ -89,8 +89,8 @@ export async function spinText(request: SpinRequest): Promise<string> {
     // Smallest effort this model accepts. none and minimal are rejected.
     // Temperature is omitted: this model rejects it unless reasoning effort is none.
     reasoning_effort: "low",
-    // Includes reasoning tokens. Kept small because titles, descriptions, and Max's Take are short.
-    max_completion_tokens: 300,
+    // Includes reasoning tokens. 1024 leaves room for low-effort reasoning and still returns a short title, description, or Max's Take.
+    max_completion_tokens: 1024,
   });
   
   let text = response.choices[0]?.message?.content?.trim() || "";
