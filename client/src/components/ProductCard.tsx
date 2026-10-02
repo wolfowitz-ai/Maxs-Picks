@@ -30,29 +30,32 @@ export function ProductCard({ product, index, featured = false }: ProductCardPro
       transition={{ duration: 0.4, delay: index * 0.1 }}
     >
       <Card className={`group overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white h-full flex flex-col ${featured ? "border-2 border-amber-300 ring-2 ring-amber-100" : "border-none"}`}>
-        {/* Image Container */}
-        <div className="relative overflow-hidden bg-gray-50">
-          {featured && (
-            <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium shadow-sm">
-              <Bone className="w-2.5 h-2.5 md:w-3 md:h-3" />
-              <span className="hidden sm:inline">Featured</span>
-            </div>
-          )}
-          {hasPrice && (
-            <Badge className="absolute top-2 right-2 md:top-3 md:right-3 z-10 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-xs md:text-sm font-bold px-2 py-0.5 md:px-3 md:py-1">
-              ${parseFloat(product.price!).toFixed(2)}
-            </Badge>
-          )}
-          <Link href={`/product/${product.id}`} className="block">
-            <ImageCarousel 
-              images={allImages} 
-              alt={product.title}
-              aspectRatio="square"
-              showDots={allImages.length > 1}
-              showArrows={allImages.length > 1}
-              className="cursor-pointer transition-transform duration-500 group-hover:scale-105"
-            />
-          </Link>
+        {/* Small top inset so the photo doesn't sit against the card border.
+            Hover zoom stays clipped inside the image, so the gap holds. */}
+        <div className="bg-gray-50 pt-2">
+          <div className="relative overflow-hidden">
+            {featured && (
+              <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium shadow-sm">
+                <Bone className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                <span className="hidden sm:inline">Featured</span>
+              </div>
+            )}
+            {hasPrice && (
+              <Badge className="absolute top-2 right-2 md:top-3 md:right-3 z-10 bg-white/90 text-primary backdrop-blur-sm shadow-sm hover:bg-white text-xs md:text-sm font-bold px-2 py-0.5 md:px-3 md:py-1">
+                ${parseFloat(product.price!).toFixed(2)}
+              </Badge>
+            )}
+            <Link href={`/product/${product.id}`} className="block">
+              <ImageCarousel 
+                images={allImages} 
+                alt={product.title}
+                aspectRatio="square"
+                showDots={allImages.length > 1}
+                showArrows={allImages.length > 1}
+                className="cursor-pointer transition-transform duration-500 group-hover:scale-105"
+              />
+            </Link>
+          </div>
         </div>
 
         <CardHeader className="p-3 md:p-5 pb-1 md:pb-2">
